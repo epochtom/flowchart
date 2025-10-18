@@ -24,13 +24,14 @@ const FlowchartSchema = z.object({
     title: z.string().optional(),
 });
 class FlowchartGenerator {
-    nodeWidth = 120;
-    nodeHeight = 60;
-    spacing = 80;
+    nodeWidth = 140;
+    nodeHeight = 70;
+    spacing = 100;
+    levelSpacing = 120;
     generateSVG(flowchart) {
         const { nodes, edges, title } = flowchart;
         // Auto-layout nodes if positions not provided
-        const positionedNodes = this.autoLayout(nodes);
+        const positionedNodes = this.autoLayout(nodes, edges);
         // Calculate SVG dimensions
         const padding = 40;
         const maxX = Math.max(...positionedNodes.map(n => n.x || 0)) + this.nodeWidth;
@@ -47,16 +48,33 @@ class FlowchartGenerator {
             const fromNode = positionedNodes.find(n => n.id === edge.from);
             const toNode = positionedNodes.find(n => n.id === edge.to);
             if (fromNode && toNode) {
-                const x1 = (fromNode.x || 0) + this.nodeWidth / 2;
-                const y1 = (fromNode.y || 0) + this.nodeHeight;
-                const x2 = (toNode.x || 0) + this.nodeWidth / 2;
-                const y2 = (toNode.y || 0);
-                // Draw arrow line
-                svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>`;
+                const fromX = (fromNode.x || 0) + this.nodeWidth / 2;
+                const fromY = (fromNode.y || 0) + this.nodeHeight;
+                const toX = (toNode.x || 0) + this.nodeWidth / 2;
+                const toY = (toNode.y || 0);
+                // Calculate if we need a curved path to avoid crossings
+                const deltaY = toY - fromY;
+                const deltaX = toX - fromX;
+                let path = '';
+                if (Math.abs(deltaX) < this.nodeWidth && deltaY > 0) {
+                    // Direct vertical connection
+                    path = `M ${fromX} ${fromY} L ${toX} ${toY}`;
+                }
+                else if (Math.abs(deltaX) > this.nodeWidth) {
+                    // Horizontal then vertical path to avoid crossings
+                    const midY = fromY + deltaY / 2;
+                    path = `M ${fromX} ${fromY} L ${fromX} ${midY} L ${toX} ${midY} L ${toX} ${toY}`;
+                }
+                else {
+                    // Direct diagonal connection
+                    path = `M ${fromX} ${fromY} L ${toX} ${toY}`;
+                }
+                // Draw arrow path
+                svg += `<path d="${path}" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>`;
                 // Add edge label if provided
                 if (edge.label) {
-                    const midX = (x1 + x2) / 2;
-                    const midY = (y1 + y2) / 2;
+                    const midX = (fromX + toX) / 2;
+                    const midY = (fromY + toY) / 2;
                     svg += `<text x="${midX}" y="${midY - 5}" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">${edge.label}</text>`;
                 }
             }
@@ -95,7 +113,7 @@ class FlowchartGenerator {
         svg += '</svg>';
         return svg;
     }
-    autoLayout(nodes) {
+    autoLayout(nodes, edges) {
         const positionedNodes = [...nodes];
         const startNode = positionedNodes.find(n => n.type === 'start');
         if (!startNode) {
@@ -106,38 +124,71 @@ class FlowchartGenerator {
             });
             return positionedNodes;
         }
-        // Start with the start node at the top
-        startNode.x = 0;
-        startNode.y = 0;
-        // Simple layout: place nodes in levels
-        const levels = [[startNode]];
-        const visited = new Set([startNode.id]);
-        let currentLevel = 0;
-        while (currentLevel < levels.length) {
-            const currentLevelNodes = levels[currentLevel];
-            const nextLevel = [];
-            for (const node of currentLevelNodes) {
-                // Find connected nodes (simplified - in a real implementation, you'd use the edges)
-                const connectedNodes = positionedNodes.filter(n => !visited.has(n.id) && n.id !== node.id);
-                for (let i = 0; i < connectedNodes.length && i < 3; i++) {
-                    const connectedNode = connectedNodes[i];
-                    connectedNode.x = i * (this.nodeWidth + this.spacing);
-                    connectedNode.y = (currentLevel + 1) * (this.nodeHeight + this.spacing);
-                    nextLevel.push(connectedNode);
-                    visited.add(connectedNode.id);
-                }
+        // Build adjacency list for better flow analysis
+        const adjacencyList = new Map();
+        const reverseAdjacencyList = new Map();
+        for (const edge of edges) {
+            if (!adjacencyList.has(edge.from)) {
+                adjacencyList.set(edge.from, []);
             }
-            if (nextLevel.length > 0) {
-                levels.push(nextLevel);
+            if (!reverseAdjacencyList.has(edge.to)) {
+                reverseAdjacencyList.set(edge.to, []);
             }
-            currentLevel++;
+            adjacencyList.get(edge.from).push(edge.to);
+            reverseAdjacencyList.get(edge.to).push(edge.from);
         }
-        // Position remaining unvisited nodes
+        // Use topological sort to determine proper levels
+        const levels = [];
+        const visited = new Set();
+        const inProgress = new Set();
+        const visit = (nodeId, level) => {
+            if (inProgress.has(nodeId)) {
+                return; // Avoid cycles
+            }
+            if (visited.has(nodeId)) {
+                return;
+            }
+            inProgress.add(nodeId);
+            const node = positionedNodes.find(n => n.id === nodeId);
+            if (!node)
+                return;
+            // Ensure we have enough levels
+            while (levels.length <= level) {
+                levels.push([]);
+            }
+            levels[level].push(node);
+            visited.add(nodeId);
+            // Visit children
+            const children = adjacencyList.get(nodeId) || [];
+            for (const childId of children) {
+                visit(childId, level + 1);
+            }
+            inProgress.delete(nodeId);
+        };
+        // Start from the start node
+        visit(startNode.id, 0);
+        // Position nodes in levels
+        for (let levelIndex = 0; levelIndex < levels.length; levelIndex++) {
+            const levelNodes = levels[levelIndex];
+            const levelWidth = levelNodes.length * (this.nodeWidth + this.spacing) - this.spacing;
+            const startX = -levelWidth / 2;
+            for (let i = 0; i < levelNodes.length; i++) {
+                const node = levelNodes[i];
+                node.x = startX + i * (this.nodeWidth + this.spacing);
+                node.y = levelIndex * this.levelSpacing;
+            }
+        }
+        // Handle any remaining unvisited nodes (cycles, disconnected components)
         const unvisitedNodes = positionedNodes.filter(n => !visited.has(n.id));
-        unvisitedNodes.forEach((node, index) => {
-            node.x = (index % 3) * (this.nodeWidth + this.spacing);
-            node.y = levels.length * (this.nodeHeight + this.spacing);
-        });
+        if (unvisitedNodes.length > 0) {
+            const lastLevel = levels.length;
+            const levelWidth = unvisitedNodes.length * (this.nodeWidth + this.spacing) - this.spacing;
+            const startX = -levelWidth / 2;
+            unvisitedNodes.forEach((node, index) => {
+                node.x = startX + index * (this.nodeWidth + this.spacing);
+                node.y = lastLevel * this.levelSpacing;
+            });
+        }
         return positionedNodes;
     }
 }
