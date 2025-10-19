@@ -38,10 +38,18 @@ class FlowchartGenerator {
         const maxY = Math.max(...positionedNodes.map(n => n.y || 0)) + this.nodeHeight;
         const width = maxX + padding;
         const height = maxY + padding;
-        let svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">`;
+        // Start with XML declaration and proper SVG structure
+        let svg = '<?xml version="1.0" encoding="UTF-8"?>\n';
+        svg += `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">\n`;
+        // Add definitions section first (required for draw.io compatibility)
+        svg += '  <defs>\n';
+        svg += '    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">\n';
+        svg += '      <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>\n';
+        svg += '    </marker>\n';
+        svg += '  </defs>\n';
         // Add title if provided
         if (title) {
-            svg += `<text x="${width / 2}" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold">${title}</text>`;
+            svg += `  <text x="${width / 2}" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold">${title}</text>\n`;
         }
         // Add edges first (so they appear behind nodes)
         for (const edge of edges) {
@@ -70,17 +78,15 @@ class FlowchartGenerator {
                     path = `M ${fromX} ${fromY} L ${toX} ${toY}`;
                 }
                 // Draw arrow path
-                svg += `<path d="${path}" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>`;
+                svg += `  <path d="${path}" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>\n`;
                 // Add edge label if provided
                 if (edge.label) {
                     const midX = (fromX + toX) / 2;
                     const midY = (fromY + toY) / 2;
-                    svg += `<text x="${midX}" y="${midY - 5}" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">${edge.label}</text>`;
+                    svg += `  <text x="${midX}" y="${midY - 5}" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">${edge.label}</text>\n`;
                 }
             }
         }
-        // Add arrow marker definition
-        svg += `<defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#333"/></marker></defs>`;
         // Add nodes
         for (const node of positionedNodes) {
             const x = node.x || 0;
@@ -91,7 +97,7 @@ class FlowchartGenerator {
                 case 'start':
                 case 'end':
                     // Ellipse
-                    shape = `<ellipse cx="${x + this.nodeWidth / 2}" cy="${y + this.nodeHeight / 2}" rx="${this.nodeWidth / 2}" ry="${this.nodeHeight / 2}" fill="#e1f5fe" stroke="#01579b" stroke-width="2"/>`;
+                    shape = `  <ellipse cx="${x + this.nodeWidth / 2}" cy="${y + this.nodeHeight / 2}" rx="${this.nodeWidth / 2}" ry="${this.nodeHeight / 2}" fill="#e1f5fe" stroke="#01579b" stroke-width="2"/>\n`;
                     break;
                 case 'decision':
                     // Diamond
@@ -99,16 +105,16 @@ class FlowchartGenerator {
                     const centerY = y + this.nodeHeight / 2;
                     const halfWidth = this.nodeWidth / 2;
                     const halfHeight = this.nodeHeight / 2;
-                    shape = `<polygon points="${centerX},${y} ${x + this.nodeWidth},${centerY} ${centerX},${y + this.nodeHeight} ${x},${centerY}" fill="#fff3e0" stroke="#e65100" stroke-width="2"/>`;
+                    shape = `  <polygon points="${centerX},${y} ${x + this.nodeWidth},${centerY} ${centerX},${y + this.nodeHeight} ${x},${centerY}" fill="#fff3e0" stroke="#e65100" stroke-width="2"/>\n`;
                     break;
                 case 'process':
                 default:
                     // Rectangle
-                    shape = `<rect x="${x}" y="${y}" width="${this.nodeWidth}" height="${this.nodeHeight}" fill="#f3e5f5" stroke="#4a148c" stroke-width="2" rx="5"/>`;
+                    shape = `  <rect x="${x}" y="${y}" width="${this.nodeWidth}" height="${this.nodeHeight}" fill="#f3e5f5" stroke="#4a148c" stroke-width="2" rx="5"/>\n`;
                     break;
             }
             svg += shape;
-            svg += `<text x="${x + this.nodeWidth / 2}" y="${textY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">${node.label}</text>`;
+            svg += `  <text x="${x + this.nodeWidth / 2}" y="${textY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">${node.label}</text>\n`;
         }
         svg += '</svg>';
         return svg;
