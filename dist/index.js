@@ -119,6 +119,131 @@ class FlowchartGenerator {
         svg += '</svg>';
         return svg;
     }
+    generateDrawIO(flowchart) {
+        const { nodes, edges, title } = flowchart;
+        // Auto-layout nodes if positions not provided
+        const positionedNodes = this.autoLayout(nodes, edges);
+        // Calculate canvas dimensions
+        const padding = 40;
+        const maxX = Math.max(...positionedNodes.map(n => n.x || 0)) + this.nodeWidth;
+        const maxY = Math.max(...positionedNodes.map(n => n.y || 0)) + this.nodeHeight;
+        const width = maxX + padding;
+        const height = maxY + padding;
+        let drawio = '<?xml version="1.0" encoding="UTF-8"?>\n';
+        drawio += '<mxfile host="app.diagrams.net" modified="2024-01-01T00:00:00.000Z" agent="MCP-Flowchart-Server" version="1.0.0" etag="test" type="device">\n';
+        drawio += '  <diagram name="Flowchart" id="flowchart">\n';
+        drawio += `    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="${width}" pageHeight="${height}" math="0" shadow="0">\n`;
+        drawio += '      <root>\n';
+        drawio += '        <mxCell id="0"/>\n';
+        drawio += '        <mxCell id="1" parent="0"/>\n';
+        // Add title if provided
+        if (title) {
+            const titleX = width / 2;
+            const titleY = 20;
+            drawio += `        <mxCell id="title" value="${title}" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">\n`;
+            drawio += `          <mxGeometry x="${titleX - 50}" y="${titleY - 10}" width="100" height="20" as="geometry"/>\n`;
+            drawio += '        </mxCell>\n';
+        }
+        // Add nodes
+        for (const node of positionedNodes) {
+            const x = node.x || 0;
+            const y = node.y || 0;
+            let style = '';
+            let geometry = '';
+            switch (node.type) {
+                case 'start':
+                case 'end':
+                    style = 'ellipse;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;';
+                    geometry = `x="${x}" y="${y}" width="${this.nodeWidth}" height="${this.nodeHeight}"`;
+                    break;
+                case 'decision':
+                    style = 'rhombus;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;';
+                    geometry = `x="${x}" y="${y}" width="${this.nodeWidth}" height="${this.nodeHeight}"`;
+                    break;
+                case 'process':
+                default:
+                    style = 'rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#4a148c;';
+                    geometry = `x="${x}" y="${y}" width="${this.nodeWidth}" height="${this.nodeHeight}"`;
+                    break;
+            }
+            drawio += `        <mxCell id="${node.id}" value="${node.label}" style="${style}" vertex="1" parent="1">\n`;
+            drawio += `          <mxGeometry ${geometry} as="geometry"/>\n`;
+            drawio += '        </mxCell>\n';
+        }
+        // Add edges
+        for (const edge of edges) {
+            const fromNode = positionedNodes.find(n => n.id === edge.from);
+            const toNode = positionedNodes.find(n => n.id === edge.to);
+            if (fromNode && toNode) {
+                const fromX = (fromNode.x || 0) + this.nodeWidth / 2;
+                const fromY = (fromNode.y || 0) + this.nodeHeight;
+                const toX = (toNode.x || 0) + this.nodeWidth / 2;
+                const toY = (toNode.y || 0);
+                // Calculate if we need a curved path to avoid crossings
+                const deltaY = toY - fromY;
+                const deltaX = toX - fromX;
+                let path = '';
+                if (Math.abs(deltaX) < this.nodeWidth && deltaY > 0) {
+                    // Direct vertical connection
+                    path = `M ${fromX} ${fromY} L ${toX} ${toY}`;
+                }
+                else if (Math.abs(deltaX) > this.nodeWidth) {
+                    // Horizontal then vertical path to avoid crossings
+                    const midY = fromY + deltaY / 2;
+                    path = `M ${fromX} ${fromY} L ${fromX} ${midY} L ${toX} ${midY} L ${toX} ${toY}`;
+                }
+                else {
+                    // Direct diagonal connection
+                    path = `M ${fromX} ${fromY} L ${toX} ${toY}`;
+                }
+                const edgeId = `edge_${edge.from}_${edge.to}`;
+                drawio += `        <mxCell id="${edgeId}" value="${edge.label || ''}" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="${edge.from}" target="${edge.to}">\n`;
+                drawio += `          <mxGeometry width="50" height="50" relative="1" as="geometry">\n`;
+                drawio += `            <mxPoint x="${toX}" y="${toY}" as="sourcePoint"/>\n`;
+                drawio += `            <mxPoint x="${fromX}" y="${fromY}" as="targetPoint"/>\n`;
+                drawio += '          </mxGeometry>\n';
+                drawio += '        </mxCell>\n';
+            }
+        }
+        drawio += '      </root>\n';
+        drawio += '    </mxGraphModel>\n';
+        drawio += '  </diagram>\n';
+        drawio += '</mxfile>';
+        return drawio;
+    }
+    generateMermaid(flowchart) {
+        const { nodes, edges, title } = flowchart;
+        let mermaid = 'flowchart TD\n';
+        if (title) {
+            mermaid += `    title ${title}\n`;
+        }
+        // Add nodes
+        for (const node of nodes) {
+            let shape = '';
+            switch (node.type) {
+                case 'start':
+                    shape = `[${node.label}]`;
+                    break;
+                case 'end':
+                    shape = `[${node.label}]`;
+                    break;
+                case 'decision':
+                    shape = `{${node.label}}`;
+                    break;
+                case 'process':
+                default:
+                    shape = `[${node.label}]`;
+                    break;
+            }
+            mermaid += `    ${node.id}${shape}\n`;
+        }
+        // Add edges
+        for (const edge of edges) {
+            const label = edge.label ? `|${edge.label}|` : '';
+            mermaid += `    ${edge.from} -->${label} ${edge.to}\n`;
+        }
+        return mermaid;
+    }
     autoLayout(nodes, edges) {
         const positionedNodes = [...nodes];
         const startNode = positionedNodes.find(n => n.type === 'start');
@@ -209,7 +334,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         tools: [
             {
                 name: 'create_flowchart',
-                description: 'Create a simple flowchart and return it as SVG',
+                description: 'Create a flowchart in multiple formats (SVG, draw.io, Mermaid)',
                 inputSchema: {
                     type: 'object',
                     properties: {
@@ -277,6 +402,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                             },
                             required: ['nodes', 'edges'],
                         },
+                        format: {
+                            type: 'string',
+                            enum: ['svg', 'drawio', 'mermaid'],
+                            description: 'Output format for the flowchart (default: svg)',
+                            default: 'svg',
+                        },
                     },
                     required: ['flowchart'],
                 },
@@ -289,16 +420,32 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
     if (name === 'create_flowchart') {
         try {
-            const { flowchart } = args;
+            const { flowchart, format = 'svg' } = args;
             // Validate the flowchart data
             const validatedFlowchart = FlowchartSchema.parse(flowchart);
-            // Generate SVG
-            const svg = flowchartGenerator.generateSVG(validatedFlowchart);
+            let output = '';
+            let mimeType = 'text/plain';
+            switch (format) {
+                case 'drawio':
+                    output = flowchartGenerator.generateDrawIO(validatedFlowchart);
+                    mimeType = 'application/xml';
+                    break;
+                case 'mermaid':
+                    output = flowchartGenerator.generateMermaid(validatedFlowchart);
+                    mimeType = 'text/plain';
+                    break;
+                case 'svg':
+                default:
+                    output = flowchartGenerator.generateSVG(validatedFlowchart);
+                    mimeType = 'image/svg+xml';
+                    break;
+            }
             return {
                 content: [
                     {
                         type: 'text',
-                        text: svg,
+                        text: output,
+                        mimeType: mimeType,
                     },
                 ],
             };
