@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="300" height="720" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
+    </marker>
+  </defs>
+  <text x="150" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold">Direct File Write Test</text>
+  <path d="M 0 80 L 0 150" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 0 230 L 0 300" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 0 380 L -160 450" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="-80" y="410" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">Yes</text>
+  <path d="M 0 380 L 160 450" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="80" y="410" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">No</text>
+  <path d="M -160 530 L 0 600" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 160 530 L 0 600" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <ellipse cx="0" cy="40" rx="100" ry="40" fill="#e1f5fe" stroke="#01579b" stroke-width="2"/>
+  <text x="0" y="40" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">Start</text>
+  <rect x="-100" y="150" width="200" height="80" fill="#f3e5f5" stroke="#4a148c" stroke-width="2" rx="5"/>
+  <text x="0" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">Process Data</text>
+  <polygon points="0,300 100,340 0,380 -100,340" fill="#fff3e0" stroke="#e65100" stroke-width="2"/>
+  <text x="0" y="340" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">Valid?</text>
+  <rect x="-260" y="450" width="200" height="80" fill="#f3e5f5" stroke="#4a148c" stroke-width="2" rx="5"/>
+  <text x="-160" y="490" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">Success</text>
+  <rect x="60" y="450" width="200" height="80" fill="#f3e5f5" stroke="#4a148c" stroke-width="2" rx="5"/>
+  <text x="160" y="490" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">Error</text>
+  <ellipse cx="0" cy="640" rx="100" ry="40" fill="#e1f5fe" stroke="#01579b" stroke-width="2"/>
+  <text x="0" y="640" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">End</text>
+</svg>

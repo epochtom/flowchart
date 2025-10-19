@@ -3,19 +3,25 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ErrorCode, ListToolsRequestSchema, McpError, } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
+import { writeFileSync, existsSync, mkdirSync } from 'fs';
+import { join } from 'path';
 // Define the flowchart node schema
 const FlowchartNodeSchema = z.object({
     id: z.string(),
-    type: z.enum(['start', 'process', 'decision', 'end']),
+    type: z.enum(['start', 'process', 'decision', 'end', 'math', 'loop']),
     label: z.string(),
     x: z.number().optional(),
     y: z.number().optional(),
+    width: z.number().optional(),
+    height: z.number().optional(),
 });
 // Define the flowchart edge schema
 const FlowchartEdgeSchema = z.object({
     from: z.string(),
     to: z.string(),
     label: z.string().optional(),
+    type: z.enum(['normal', 'loop', 'feedback']).optional(),
+    curve: z.boolean().optional(),
 });
 // Define the flowchart schema
 const FlowchartSchema = z.object({
@@ -24,10 +30,12 @@ const FlowchartSchema = z.object({
     title: z.string().optional(),
 });
 class FlowchartGenerator {
-    nodeWidth = 140;
-    nodeHeight = 70;
-    spacing = 100;
-    levelSpacing = 120;
+    nodeWidth = 200;
+    nodeHeight = 80;
+    spacing = 120;
+    levelSpacing = 150;
+    mathNodeWidth = 300;
+    mathNodeHeight = 100;
     generateSVG(flowchart) {
         const { nodes, edges, title } = flowchart;
         // Auto-layout nodes if positions not provided
@@ -56,19 +64,35 @@ class FlowchartGenerator {
             const fromNode = positionedNodes.find(n => n.id === edge.from);
             const toNode = positionedNodes.find(n => n.id === edge.to);
             if (fromNode && toNode) {
-                const fromX = (fromNode.x || 0) + this.nodeWidth / 2;
-                const fromY = (fromNode.y || 0) + this.nodeHeight;
-                const toX = (toNode.x || 0) + this.nodeWidth / 2;
+                const fromWidth = fromNode.width || (fromNode.type === 'math' ? this.mathNodeWidth : this.nodeWidth);
+                const fromHeight = fromNode.height || (fromNode.type === 'math' ? this.mathNodeHeight : this.nodeHeight);
+                const toWidth = toNode.width || (toNode.type === 'math' ? this.mathNodeWidth : this.nodeWidth);
+                const toHeight = toNode.height || (toNode.type === 'math' ? this.mathNodeHeight : this.nodeHeight);
+                const fromX = (fromNode.x || 0) + fromWidth / 2;
+                const fromY = (fromNode.y || 0) + fromHeight;
+                const toX = (toNode.x || 0) + toWidth / 2;
                 const toY = (toNode.y || 0);
                 // Calculate if we need a curved path to avoid crossings
                 const deltaY = toY - fromY;
                 const deltaX = toX - fromX;
                 let path = '';
-                if (Math.abs(deltaX) < this.nodeWidth && deltaY > 0) {
+                let strokeColor = '#333';
+                let strokeWidth = '2';
+                // Handle different edge types
+                if (edge.type === 'loop' || edge.type === 'feedback') {
+                    strokeColor = '#e74c3c';
+                    strokeWidth = '3';
+                    // Create a curved path for loops
+                    const controlY = Math.min(fromY, toY) - 50;
+                    const controlX1 = fromX + 50;
+                    const controlX2 = toX + 50;
+                    path = `M ${fromX} ${fromY} Q ${controlX1} ${controlY} ${controlX2} ${controlY} Q ${controlX2} ${controlY} ${toX} ${toY}`;
+                }
+                else if (Math.abs(deltaX) < Math.max(fromWidth, toWidth) && deltaY > 0) {
                     // Direct vertical connection
                     path = `M ${fromX} ${fromY} L ${toX} ${toY}`;
                 }
-                else if (Math.abs(deltaX) > this.nodeWidth) {
+                else if (Math.abs(deltaX) > Math.max(fromWidth, toWidth)) {
                     // Horizontal then vertical path to avoid crossings
                     const midY = fromY + deltaY / 2;
                     path = `M ${fromX} ${fromY} L ${fromX} ${midY} L ${toX} ${midY} L ${toX} ${toY}`;
@@ -78,12 +102,13 @@ class FlowchartGenerator {
                     path = `M ${fromX} ${fromY} L ${toX} ${toY}`;
                 }
                 // Draw arrow path
-                svg += `  <path d="${path}" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>\n`;
+                svg += `  <path d="${path}" stroke="${strokeColor}" stroke-width="${strokeWidth}" fill="none" marker-end="url(#arrowhead)"/>\n`;
                 // Add edge label if provided
                 if (edge.label) {
                     const midX = (fromX + toX) / 2;
                     const midY = (fromY + toY) / 2;
-                    svg += `  <text x="${midX}" y="${midY - 5}" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">${edge.label}</text>\n`;
+                    const labelY = edge.type === 'loop' || edge.type === 'feedback' ? midY - 20 : midY - 5;
+                    svg += `  <text x="${midX}" y="${labelY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="${strokeColor}">${edge.label}</text>\n`;
                 }
             }
         }
@@ -91,30 +116,57 @@ class FlowchartGenerator {
         for (const node of positionedNodes) {
             const x = node.x || 0;
             const y = node.y || 0;
+            const width = node.width || (node.type === 'math' ? this.mathNodeWidth : this.nodeWidth);
+            const height = node.height || (node.type === 'math' ? this.mathNodeHeight : this.nodeHeight);
             let shape = '';
-            let textY = y + this.nodeHeight / 2;
+            let textY = y + height / 2;
+            let fontSize = '12';
+            // Adjust font size for math nodes
+            if (node.type === 'math') {
+                fontSize = '10';
+            }
             switch (node.type) {
                 case 'start':
                 case 'end':
                     // Ellipse
-                    shape = `  <ellipse cx="${x + this.nodeWidth / 2}" cy="${y + this.nodeHeight / 2}" rx="${this.nodeWidth / 2}" ry="${this.nodeHeight / 2}" fill="#e1f5fe" stroke="#01579b" stroke-width="2"/>\n`;
+                    shape = `  <ellipse cx="${x + width / 2}" cy="${y + height / 2}" rx="${width / 2}" ry="${height / 2}" fill="#e1f5fe" stroke="#01579b" stroke-width="2"/>\n`;
                     break;
                 case 'decision':
                     // Diamond
-                    const centerX = x + this.nodeWidth / 2;
-                    const centerY = y + this.nodeHeight / 2;
-                    const halfWidth = this.nodeWidth / 2;
-                    const halfHeight = this.nodeHeight / 2;
-                    shape = `  <polygon points="${centerX},${y} ${x + this.nodeWidth},${centerY} ${centerX},${y + this.nodeHeight} ${x},${centerY}" fill="#fff3e0" stroke="#e65100" stroke-width="2"/>\n`;
+                    const centerX = x + width / 2;
+                    const centerY = y + height / 2;
+                    const halfWidth = width / 2;
+                    const halfHeight = height / 2;
+                    shape = `  <polygon points="${centerX},${y} ${x + width},${centerY} ${centerX},${y + height} ${x},${centerY}" fill="#fff3e0" stroke="#e65100" stroke-width="2"/>\n`;
+                    break;
+                case 'math':
+                    // Rectangle with different styling for mathematical content
+                    shape = `  <rect x="${x}" y="${y}" width="${width}" height="${height}" fill="#f8f9fa" stroke="#6c757d" stroke-width="2" rx="8"/>\n`;
+                    break;
+                case 'loop':
+                    // Rounded rectangle for loop indicators
+                    shape = `  <rect x="${x}" y="${y}" width="${width}" height="${height}" fill="#fff2cc" stroke="#d6b656" stroke-width="2" rx="15"/>\n`;
                     break;
                 case 'process':
                 default:
                     // Rectangle
-                    shape = `  <rect x="${x}" y="${y}" width="${this.nodeWidth}" height="${this.nodeHeight}" fill="#f3e5f5" stroke="#4a148c" stroke-width="2" rx="5"/>\n`;
+                    shape = `  <rect x="${x}" y="${y}" width="${width}" height="${height}" fill="#f3e5f5" stroke="#4a148c" stroke-width="2" rx="5"/>\n`;
                     break;
             }
             svg += shape;
-            svg += `  <text x="${x + this.nodeWidth / 2}" y="${textY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">${node.label}</text>\n`;
+            // Handle text wrapping for longer labels
+            const words = node.label.split(' ');
+            const maxWordsPerLine = node.type === 'math' ? 8 : 6;
+            const lines = [];
+            for (let i = 0; i < words.length; i += maxWordsPerLine) {
+                lines.push(words.slice(i, i + maxWordsPerLine).join(' '));
+            }
+            const lineHeight = parseInt(fontSize) + 2;
+            const startY = textY - ((lines.length - 1) * lineHeight) / 2;
+            for (let i = 0; i < lines.length; i++) {
+                const lineY = startY + (i * lineHeight);
+                svg += `  <text x="${x + width / 2}" y="${lineY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${fontSize}" fill="#333">${lines[i]}</text>\n`;
+            }
         }
         svg += '</svg>';
         return svg;
@@ -358,8 +410,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                                             },
                                             type: {
                                                 type: 'string',
-                                                enum: ['start', 'process', 'decision', 'end'],
-                                                description: 'Type of the node',
+                                                enum: ['start', 'process', 'decision', 'end', 'math', 'loop'],
+                                                description: 'Type of the node (start, process, decision, end, math, loop)',
                                             },
                                             label: {
                                                 type: 'string',
@@ -372,6 +424,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                                             y: {
                                                 type: 'number',
                                                 description: 'Optional Y position (auto-layout if not provided)',
+                                            },
+                                            width: {
+                                                type: 'number',
+                                                description: 'Optional width (auto-calculated if not provided)',
+                                            },
+                                            height: {
+                                                type: 'number',
+                                                description: 'Optional height (auto-calculated if not provided)',
                                             },
                                         },
                                         required: ['id', 'type', 'label'],
@@ -395,6 +455,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                                                 type: 'string',
                                                 description: 'Optional label for the edge',
                                             },
+                                            type: {
+                                                type: 'string',
+                                                enum: ['normal', 'loop', 'feedback'],
+                                                description: 'Type of the edge (normal, loop, feedback)',
+                                            },
+                                            curve: {
+                                                type: 'boolean',
+                                                description: 'Whether to draw the edge as a curve',
+                                            },
                                         },
                                         required: ['from', 'to'],
                                     },
@@ -410,6 +479,213 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         },
                     },
                     required: ['flowchart'],
+                },
+            },
+            {
+                name: 'export_flowchart_file',
+                description: 'Export flowchart as a file with VSCode-friendly format',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        flowchart: {
+                            type: 'object',
+                            description: 'The flowchart definition',
+                            properties: {
+                                title: {
+                                    type: 'string',
+                                    description: 'Optional title for the flowchart',
+                                },
+                                nodes: {
+                                    type: 'array',
+                                    description: 'Array of flowchart nodes',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            id: {
+                                                type: 'string',
+                                                description: 'Unique identifier for the node',
+                                            },
+                                            type: {
+                                                type: 'string',
+                                                enum: ['start', 'process', 'decision', 'end', 'math', 'loop'],
+                                                description: 'Type of the node (start, process, decision, end, math, loop)',
+                                            },
+                                            label: {
+                                                type: 'string',
+                                                description: 'Text label for the node',
+                                            },
+                                            x: {
+                                                type: 'number',
+                                                description: 'Optional X position (auto-layout if not provided)',
+                                            },
+                                            y: {
+                                                type: 'number',
+                                                description: 'Optional Y position (auto-layout if not provided)',
+                                            },
+                                            width: {
+                                                type: 'number',
+                                                description: 'Optional width (auto-calculated if not provided)',
+                                            },
+                                            height: {
+                                                type: 'number',
+                                                description: 'Optional height (auto-calculated if not provided)',
+                                            },
+                                        },
+                                        required: ['id', 'type', 'label'],
+                                    },
+                                },
+                                edges: {
+                                    type: 'array',
+                                    description: 'Array of connections between nodes',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            from: {
+                                                type: 'string',
+                                                description: 'ID of the source node',
+                                            },
+                                            to: {
+                                                type: 'string',
+                                                description: 'ID of the target node',
+                                            },
+                                            label: {
+                                                type: 'string',
+                                                description: 'Optional label for the edge',
+                                            },
+                                            type: {
+                                                type: 'string',
+                                                enum: ['normal', 'loop', 'feedback'],
+                                                description: 'Type of the edge (normal, loop, feedback)',
+                                            },
+                                            curve: {
+                                                type: 'boolean',
+                                                description: 'Whether to draw the edge as a curve',
+                                            },
+                                        },
+                                        required: ['from', 'to'],
+                                    },
+                                },
+                            },
+                            required: ['nodes', 'edges'],
+                        },
+                        format: {
+                            type: 'string',
+                            enum: ['svg', 'drawio', 'mermaid'],
+                            description: 'Output format for the flowchart (default: svg)',
+                            default: 'svg',
+                        },
+                        filename: {
+                            type: 'string',
+                            description: 'Optional filename (without extension)',
+                        },
+                    },
+                    required: ['flowchart'],
+                },
+            },
+            {
+                name: 'write_flowchart_file',
+                description: 'Write flowchart directly to file system (bypasses Cline write_to_file issues)',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        flowchart: {
+                            type: 'object',
+                            description: 'The flowchart definition',
+                            properties: {
+                                title: {
+                                    type: 'string',
+                                    description: 'Optional title for the flowchart',
+                                },
+                                nodes: {
+                                    type: 'array',
+                                    description: 'Array of flowchart nodes',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            id: {
+                                                type: 'string',
+                                                description: 'Unique identifier for the node',
+                                            },
+                                            type: {
+                                                type: 'string',
+                                                enum: ['start', 'process', 'decision', 'end', 'math', 'loop'],
+                                                description: 'Type of the node (start, process, decision, end, math, loop)',
+                                            },
+                                            label: {
+                                                type: 'string',
+                                                description: 'Text label for the node',
+                                            },
+                                            x: {
+                                                type: 'number',
+                                                description: 'Optional X position (auto-layout if not provided)',
+                                            },
+                                            y: {
+                                                type: 'number',
+                                                description: 'Optional Y position (auto-layout if not provided)',
+                                            },
+                                            width: {
+                                                type: 'number',
+                                                description: 'Optional width (auto-calculated if not provided)',
+                                            },
+                                            height: {
+                                                type: 'number',
+                                                description: 'Optional height (auto-calculated if not provided)',
+                                            },
+                                        },
+                                        required: ['id', 'type', 'label'],
+                                    },
+                                },
+                                edges: {
+                                    type: 'array',
+                                    description: 'Array of connections between nodes',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            from: {
+                                                type: 'string',
+                                                description: 'ID of the source node',
+                                            },
+                                            to: {
+                                                type: 'string',
+                                                description: 'ID of the target node',
+                                            },
+                                            label: {
+                                                type: 'string',
+                                                description: 'Optional label for the edge',
+                                            },
+                                            type: {
+                                                type: 'string',
+                                                enum: ['normal', 'loop', 'feedback'],
+                                                description: 'Type of the edge (normal, loop, feedback)',
+                                            },
+                                            curve: {
+                                                type: 'boolean',
+                                                description: 'Whether to draw the edge as a curve',
+                                            },
+                                        },
+                                        required: ['from', 'to'],
+                                    },
+                                },
+                            },
+                            required: ['nodes', 'edges'],
+                        },
+                        format: {
+                            type: 'string',
+                            enum: ['svg', 'drawio', 'mermaid'],
+                            description: 'Output format for the flowchart (default: svg)',
+                            default: 'svg',
+                        },
+                        filename: {
+                            type: 'string',
+                            description: 'Filename (without extension)',
+                        },
+                        outputDir: {
+                            type: 'string',
+                            description: 'Output directory (default: current directory)',
+                            default: '.',
+                        },
+                    },
+                    required: ['flowchart', 'filename'],
                 },
             },
         ],
@@ -440,14 +716,60 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     mimeType = 'image/svg+xml';
                     break;
             }
+            // Provide multiple content options for better VSCode Cline compatibility
+            const content = [
+                {
+                    type: 'text',
+                    text: output,
+                    mimeType: mimeType,
+                },
+                {
+                    type: 'text',
+                    text: `File generated successfully!\n\nFormat: ${format}\nMIME Type: ${mimeType}\nSize: ${output.length} characters\n\nTo save this file, copy the content above and save it with the appropriate extension:\n- SVG: .svg\n- Draw.io: .drawio\n- Mermaid: .md or .mmd`,
+                }
+            ];
+            // Add file metadata for better VSCode integration
+            if (format === 'svg') {
+                content.push({
+                    type: 'text',
+                    text: `<!-- SVG File Metadata -->
+<!-- Generated by MCP Flowchart Server -->
+<!-- Format: SVG -->
+<!-- Compatible with: draw.io, web browsers, image viewers -->
+<!-- File size: ${output.length} characters -->`,
+                });
+            }
+            else if (format === 'drawio') {
+                content.push({
+                    type: 'text',
+                    text: `<!-- Draw.io File Metadata -->
+<!-- Generated by MCP Flowchart Server -->
+<!-- Format: Draw.io XML -->
+<!-- Compatible with: draw.io, diagrams.net -->
+<!-- File size: ${output.length} characters -->
+<!-- To open: Use draw.io or diagrams.net -->`,
+                });
+            }
+            else if (format === 'mermaid') {
+                content.push({
+                    type: 'text',
+                    text: `<!-- Mermaid File Metadata -->
+<!-- Generated by MCP Flowchart Server -->
+<!-- Format: Mermaid -->
+<!-- Compatible with: GitHub, GitLab, Mermaid Live Editor -->
+<!-- File size: ${output.length} characters -->
+<!-- To render: Use Mermaid Live Editor or GitHub -->`,
+                });
+            }
             return {
-                content: [
-                    {
-                        type: 'text',
-                        text: output,
-                        mimeType: mimeType,
-                    },
-                ],
+                content: content,
+                isError: false,
+                metadata: {
+                    format: format,
+                    mimeType: mimeType,
+                    size: output.length,
+                    filename: `flowchart.${format === 'drawio' ? 'drawio' : format}`,
+                }
             };
         }
         catch (error) {
@@ -455,6 +777,126 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 throw new McpError(ErrorCode.InvalidParams, `Invalid flowchart data: ${error.errors.map(e => e.message).join(', ')}`);
             }
             throw new McpError(ErrorCode.InternalError, `Failed to generate flowchart: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    }
+    if (name === 'export_flowchart_file') {
+        try {
+            const { flowchart, format = 'svg', filename } = args;
+            // Validate the flowchart data
+            const validatedFlowchart = FlowchartSchema.parse(flowchart);
+            let output = '';
+            let mimeType = 'text/plain';
+            let fileExtension = '';
+            switch (format) {
+                case 'drawio':
+                    output = flowchartGenerator.generateDrawIO(validatedFlowchart);
+                    mimeType = 'application/xml';
+                    fileExtension = '.drawio';
+                    break;
+                case 'mermaid':
+                    output = flowchartGenerator.generateMermaid(validatedFlowchart);
+                    mimeType = 'text/plain';
+                    fileExtension = '.mmd';
+                    break;
+                case 'svg':
+                default:
+                    output = flowchartGenerator.generateSVG(validatedFlowchart);
+                    mimeType = 'image/svg+xml';
+                    fileExtension = '.svg';
+                    break;
+            }
+            const finalFilename = filename ? `${filename}${fileExtension}` : `flowchart${fileExtension}`;
+            // Return content in a VSCode-friendly format
+            return {
+                content: [
+                    {
+                        type: 'text',
+                        text: `# Flowchart Export\n\n**File:** ${finalFilename}\n**Format:** ${format.toUpperCase()}\n**Size:** ${output.length} characters\n\n## Content:\n\n\`\`\`${format === 'svg' ? 'xml' : format === 'drawio' ? 'xml' : 'text'}\n${output}\n\`\`\`\n\n## Instructions:\n\n1. Copy the content from the code block above\n2. Save it as \`${finalFilename}\`\n3. Open with appropriate application:\n   - **SVG**: Web browser, draw.io, image viewers\n   - **Draw.io**: diagrams.net or draw.io application\n   - **Mermaid**: GitHub, GitLab, or Mermaid Live Editor`,
+                    },
+                ],
+                isError: false,
+                metadata: {
+                    filename: finalFilename,
+                    format: format,
+                    mimeType: mimeType,
+                    size: output.length,
+                }
+            };
+        }
+        catch (error) {
+            if (error instanceof z.ZodError) {
+                throw new McpError(ErrorCode.InvalidParams, `Invalid flowchart data: ${error.errors.map(e => e.message).join(', ')}`);
+            }
+            throw new McpError(ErrorCode.InternalError, `Failed to export flowchart: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    }
+    if (name === 'write_flowchart_file') {
+        try {
+            const { flowchart, format = 'svg', filename, outputDir = '.' } = args;
+            // Validate the flowchart data
+            const validatedFlowchart = FlowchartSchema.parse(flowchart);
+            let output = '';
+            let fileExtension = '';
+            switch (format) {
+                case 'drawio':
+                    output = flowchartGenerator.generateDrawIO(validatedFlowchart);
+                    fileExtension = '.drawio';
+                    break;
+                case 'mermaid':
+                    output = flowchartGenerator.generateMermaid(validatedFlowchart);
+                    fileExtension = '.mmd';
+                    break;
+                case 'svg':
+                default:
+                    output = flowchartGenerator.generateSVG(validatedFlowchart);
+                    fileExtension = '.svg';
+                    break;
+            }
+            // Ensure output directory exists
+            if (!existsSync(outputDir)) {
+                mkdirSync(outputDir, { recursive: true });
+            }
+            // Create full file path
+            const fullFilename = `${filename}${fileExtension}`;
+            const filePath = join(outputDir, fullFilename);
+            // Write file directly to filesystem
+            writeFileSync(filePath, output, 'utf8');
+            return {
+                content: [
+                    {
+                        type: 'text',
+                        text: `✅ Flowchart file created successfully!
+
+📁 **File:** ${filePath}
+📊 **Format:** ${format.toUpperCase()}
+📏 **Size:** ${output.length} characters
+📅 **Created:** ${new Date().toISOString()}
+
+🎯 **Next Steps:**
+${format === 'svg' ?
+                            '- Open in web browser, draw.io, or any image viewer' :
+                            format === 'drawio' ?
+                                '- Open in draw.io or diagrams.net' :
+                                '- Open in GitHub, GitLab, or Mermaid Live Editor'}
+
+The file has been written directly to your filesystem, bypassing any Cline file handling issues.`,
+                    },
+                ],
+                isError: false,
+                metadata: {
+                    filePath: filePath,
+                    filename: fullFilename,
+                    format: format,
+                    size: output.length,
+                    created: new Date().toISOString(),
+                }
+            };
+        }
+        catch (error) {
+            if (error instanceof z.ZodError) {
+                throw new McpError(ErrorCode.InvalidParams, `Invalid flowchart data: ${error.errors.map(e => e.message).join(', ')}`);
+            }
+            throw new McpError(ErrorCode.InternalError, `Failed to write flowchart file: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
     throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);

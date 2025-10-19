@@ -1,0 +1,14 @@
+flowchart TD
+    title Direct File Write Test
+    start[Start]
+    process[Process Data]
+    decision{Valid?}
+    success[Success]
+    error[Error]
+    end[End]
+    start --> process
+    process --> decision
+    decision -->|Yes| success
+    decision -->|No| error
+    success --> end
+    error --> end
