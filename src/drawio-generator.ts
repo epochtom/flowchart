@@ -74,7 +74,13 @@ ${mxfile}`;
 
   private escapeStyleAttribute(style: string): string {
     if (!style) return '';
-    return this.escapeAllSymbols(style);
+    // Only escape essential XML characters for style attributes
+    return String(style)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   private escapeAllAttributes(text: string): string {
@@ -96,32 +102,7 @@ ${mxfile}`;
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;')
-      // Key symbols that commonly cause issues
-      .replace(/;/g, '&#59;')   // Semicolon
-      .replace(/:/g, '&#58;')   // Colon
-      .replace(/=/g, '&#61;')   // Equals
-      .replace(/\(/g, '&#40;')  // Left parenthesis
-      .replace(/\)/g, '&#41;')  // Right parenthesis
-      .replace(/\[/g, '&#91;')  // Left square bracket
-      .replace(/\]/g, '&#93;')  // Right square bracket
-      .replace(/\{/g, '&#123;') // Left curly brace
-      .replace(/\}/g, '&#125;') // Right curly brace
-      .replace(/\+/g, '&#43;')  // Plus sign
-      .replace(/-/g, '&#45;')   // Hyphen/minus
-      .replace(/\*/g, '&#42;')  // Asterisk
-      .replace(/\//g, '&#47;')  // Forward slash
-      .replace(/\\/g, '&#92;')  // Backslash
-      .replace(/\|/g, '&#124;') // Pipe
-      .replace(/\^/g, '&#94;')  // Caret
-      .replace(/~/g, '&#126;')  // Tilde
-      .replace(/`/g, '&#96;')   // Backtick
-      .replace(/!/g, '&#33;')   // Exclamation
-      .replace(/\?/g, '&#63;')  // Question mark
-      .replace(/@/g, '&#64;')   // At symbol
-      .replace(/#/g, '&#35;')   // Hash/pound
-      .replace(/\$/g, '&#36;')  // Dollar sign
-      .replace(/%/g, '&#37;');  // Percent
+      .replace(/'/g, '&#39;');
   }
 
   private generateId(): string {
