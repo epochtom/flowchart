@@ -24,7 +24,7 @@ ${mxfile}`;
 
   private createMxFile(flowchart: Flowchart): string {
     const diagram = this.createDiagram(flowchart);
-    return `<mxfile host="app.diagrams.net" modified="${this.escapeXml(new Date().toISOString())}" agent="MCP Flowchart Server" etag="1" version="22.1.16" type="device">
+    return `<mxfile host="app.diagrams.net" modified="${this.escapeAllSymbols(new Date().toISOString())}" agent="MCP Flowchart Server" etag="1" version="22.1.16" type="device">
   <diagram name="Flowchart" id="${this.generateId()}">
     ${diagram}
   </diagram>
@@ -53,28 +53,75 @@ ${mxfile}`;
     // Use the predefined style for the node type, or the custom style if provided
     const style = node.style || (DrawIOGenerator.NODE_STYLES[node.type] || DrawIOGenerator.NODE_STYLES.process);
     
-    return `<mxCell id="${this.escapeXml(node.id)}" value="${this.escapeXml(node.label)}" style="${this.escapeXml(style)}" vertex="1" parent="1">
+    return `<mxCell id="${this.escapeAllAttributes(node.id)}" value="${this.escapeAllAttributes(node.label)}" style="${this.escapeStyleAttribute(style)}" vertex="1" parent="1">
       <mxGeometry x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}" as="geometry" />
     </mxCell>`;
   }
 
   private createEdgeCell(edge: FlowchartEdge): string {
     const style = edge.style || DrawIOGenerator.EDGE_STYLES.default;
-    const label = edge.label ? ` value="${this.escapeXml(edge.label)}"` : '';
+    const label = edge.label ? ` value="${this.escapeAllAttributes(edge.label)}"` : '';
     
-    return `<mxCell id="${this.escapeXml(edge.id)}"${label} style="${this.escapeXml(style)}" edge="1" parent="1" source="${this.escapeXml(edge.source)}" target="${this.escapeXml(edge.target)}">
+    return `<mxCell id="${this.escapeAllAttributes(edge.id)}"${label} style="${this.escapeStyleAttribute(style)}" edge="1" parent="1" source="${this.escapeAllAttributes(edge.source)}" target="${this.escapeAllAttributes(edge.target)}">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>`;
   }
 
   private escapeXml(text: string): string {
     if (!text) return '';
+    return this.escapeAllSymbols(text);
+  }
+
+  private escapeStyleAttribute(style: string): string {
+    if (!style) return '';
+    return this.escapeAllSymbols(style);
+  }
+
+  private escapeAllAttributes(text: string): string {
+    if (!text) return '';
+    return this.escapeAllSymbols(text);
+  }
+
+  private escapeAllSymbols(text: string): string {
+    if (!text) return '';
+    
+    // Check if already escaped to avoid double escaping
+    if (text.includes('&#') || text.includes('&amp;') || text.includes('&lt;') || text.includes('&gt;') || text.includes('&quot;')) {
+      return text;
+    }
+    
     return String(text)
+      // Essential XML entities (must be first)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+      .replace(/'/g, '&#39;')
+      // Key symbols that commonly cause issues
+      .replace(/;/g, '&#59;')   // Semicolon
+      .replace(/:/g, '&#58;')   // Colon
+      .replace(/=/g, '&#61;')   // Equals
+      .replace(/\(/g, '&#40;')  // Left parenthesis
+      .replace(/\)/g, '&#41;')  // Right parenthesis
+      .replace(/\[/g, '&#91;')  // Left square bracket
+      .replace(/\]/g, '&#93;')  // Right square bracket
+      .replace(/\{/g, '&#123;') // Left curly brace
+      .replace(/\}/g, '&#125;') // Right curly brace
+      .replace(/\+/g, '&#43;')  // Plus sign
+      .replace(/-/g, '&#45;')   // Hyphen/minus
+      .replace(/\*/g, '&#42;')  // Asterisk
+      .replace(/\//g, '&#47;')  // Forward slash
+      .replace(/\\/g, '&#92;')  // Backslash
+      .replace(/\|/g, '&#124;') // Pipe
+      .replace(/\^/g, '&#94;')  // Caret
+      .replace(/~/g, '&#126;')  // Tilde
+      .replace(/`/g, '&#96;')   // Backtick
+      .replace(/!/g, '&#33;')   // Exclamation
+      .replace(/\?/g, '&#63;')  // Question mark
+      .replace(/@/g, '&#64;')   // At symbol
+      .replace(/#/g, '&#35;')   // Hash/pound
+      .replace(/\$/g, '&#36;')  // Dollar sign
+      .replace(/%/g, '&#37;');  // Percent
   }
 
   private generateId(): string {
