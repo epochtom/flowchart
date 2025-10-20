@@ -3,7 +3,7 @@
     "flowchart": {
       "command": "node",
       "args": ["dist/index.js"],
-      "cwd": ".",
+      "cwd": "path/to/your/github/repo/flowchart",
       "env": {}
     }
   }
