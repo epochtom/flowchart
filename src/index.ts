@@ -58,9 +58,10 @@ class FlowchartGenerator {
   
   // Layout configuration for better structure
   private maxNodesPerLevel = 3;  // Reduced to prevent overcrowding
-  private minSpacing = 120;  // Increased minimum spacing
-  private groupSpacing = 60;  // Increased group spacing
-  private arrowClearance = 40;  // Space reserved for arrows
+  private minSpacing = 150;  // Increased minimum spacing for better arrow clearance
+  private groupSpacing = 80;  // Increased group spacing
+  private arrowClearance = 80;  // Increased space reserved for arrows
+  private loopClearance = 120;  // Extra space for loop arrows
 
   // Utility function to escape XML characters
   private escapeXml(text: string): string {
@@ -294,10 +295,13 @@ class FlowchartGenerator {
     // Auto-layout nodes if positions not provided
     const positionedNodes = this.autoLayout(nodes, edges);
     
-    // Calculate canvas dimensions
+    // Apply additional spacing adjustments for complex flowcharts
+    const adjustedNodes = this.adjustSpacingForComplexFlowcharts(positionedNodes, edges);
+    
+    // Calculate canvas dimensions using adjusted nodes
     const padding = 40;
-    const maxX = Math.max(...positionedNodes.map(n => n.x || 0)) + this.nodeWidth;
-    const maxY = Math.max(...positionedNodes.map(n => n.y || 0)) + this.nodeHeight;
+    const maxX = Math.max(...adjustedNodes.map(n => n.x || 0)) + this.nodeWidth;
+    const maxY = Math.max(...adjustedNodes.map(n => n.y || 0)) + this.nodeHeight;
     const width = maxX + padding;
     const height = maxY + padding;
 
@@ -318,8 +322,8 @@ class FlowchartGenerator {
       drawio += '        </mxCell>\n';
     }
 
-    // Add nodes
-    for (const node of positionedNodes) {
+    // Add nodes using adjusted positions
+    for (const node of adjustedNodes) {
       const x = node.x || 0;
       const y = node.y || 0;
       
@@ -361,39 +365,19 @@ class FlowchartGenerator {
       drawio += '        </mxCell>\n';
     }
 
-    // Add edges
+    // Add edges with improved routing to avoid overlaps
     for (const edge of edges) {
-      const fromNode = positionedNodes.find(n => n.id === edge.from);
-      const toNode = positionedNodes.find(n => n.id === edge.to);
+      const fromNode = adjustedNodes.find(n => n.id === edge.from);
+      const toNode = adjustedNodes.find(n => n.id === edge.to);
       
       if (fromNode && toNode) {
-        const fromX = (fromNode.x || 0) + this.nodeWidth / 2;
-        const fromY = (fromNode.y || 0) + this.nodeHeight;
-        const toX = (toNode.x || 0) + this.nodeWidth / 2;
-        const toY = (toNode.y || 0);
-        
-        // Calculate if we need a curved path to avoid crossings
-        const deltaY = toY - fromY;
-        const deltaX = toX - fromX;
-        
-        let path = '';
-        if (Math.abs(deltaX) < this.nodeWidth && deltaY > 0) {
-          // Direct vertical connection
-          path = `M ${fromX} ${fromY} L ${toX} ${toY}`;
-        } else if (Math.abs(deltaX) > this.nodeWidth) {
-          // Horizontal then vertical path to avoid crossings
-          const midY = fromY + deltaY / 2;
-          path = `M ${fromX} ${fromY} L ${fromX} ${midY} L ${toX} ${midY} L ${toX} ${toY}`;
-        } else {
-          // Direct diagonal connection
-          path = `M ${fromX} ${fromY} L ${toX} ${toY}`;
-        }
-        
         const edgeId = `edge_${edge.from}_${edge.to}`;
-        drawio += `        <mxCell id="${edgeId}" value="${this.escapeXml(edge.label || '')}" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="${edge.from}" target="${edge.to}">\n`;
+        const edgeStyle = this.generateDrawIOEdgeStyle(edge, fromNode, toNode);
+        
+        drawio += `        <mxCell id="${edgeId}" value="${this.escapeXml(edge.label || '')}" style="${edgeStyle}" edge="1" parent="1" source="${edge.from}" target="${edge.to}">\n`;
         drawio += `          <mxGeometry width="50" height="50" relative="1" as="geometry">\n`;
-        drawio += `            <mxPoint x="${toX}" y="${toY}" as="sourcePoint"/>\n`;
-        drawio += `            <mxPoint x="${fromX}" y="${fromY}" as="targetPoint"/>\n`;
+        drawio += `            <mxPoint x="${(toNode.x || 0) + this.nodeWidth / 2}" y="${(toNode.y || 0)}" as="sourcePoint"/>\n`;
+        drawio += `            <mxPoint x="${(fromNode.x || 0) + this.nodeWidth / 2}" y="${(fromNode.y || 0) + this.nodeHeight}" as="targetPoint"/>\n`;
         drawio += '          </mxGeometry>\n';
         drawio += '        </mxCell>\n';
       }
@@ -447,7 +431,9 @@ class FlowchartGenerator {
   }
 
   private autoLayout(nodes: FlowchartNode[], edges: FlowchartEdge[]): FlowchartNode[] {
-    const positionedNodes = [...nodes];
+    // First, detect and handle loops to avoid overlaps
+    const { nodes: adjustedNodes, edges: adjustedEdges } = this.detectAndHandleLoops(nodes, edges);
+    const positionedNodes = [...adjustedNodes];
     const startNode = positionedNodes.find(n => n.type === 'start');
     
     if (!startNode) {
@@ -466,7 +452,7 @@ class FlowchartGenerator {
     const adjacencyList = new Map<string, string[]>();
     const reverseAdjacencyList = new Map<string, string[]>();
     
-    for (const edge of edges) {
+    for (const edge of adjustedEdges) {
       if (!adjacencyList.has(edge.from)) {
         adjacencyList.set(edge.from, []);
       }
@@ -557,6 +543,115 @@ class FlowchartGenerator {
     return positionedNodes;
   }
 
+  // Adjust spacing for complex flowcharts to prevent arrow overlaps
+  private adjustSpacingForComplexFlowcharts(nodes: FlowchartNode[], edges: FlowchartEdge[]): FlowchartNode[] {
+    const adjustedNodes = [...nodes];
+    
+    // Identify complex patterns that need extra spacing
+    const loopEdges = edges.filter(edge => edge.type === 'loop' || edge.type === 'feedback');
+    const decisionNodes = adjustedNodes.filter(node => node.type === 'decision');
+    const processNodes = adjustedNodes.filter(node => node.type === 'process');
+    
+    // Increase spacing around decision nodes to prevent arrow overlaps
+    decisionNodes.forEach(decisionNode => {
+      const decisionX = decisionNode.x || 0;
+      const decisionY = decisionNode.y || 0;
+      
+      // Find nodes that might interfere with decision arrows
+      adjustedNodes.forEach(node => {
+        if (node.id === decisionNode.id) return;
+        
+        const nodeX = node.x || 0;
+        const nodeY = node.y || 0;
+        
+        // If node is too close to decision node, move it
+        const distance = Math.sqrt(Math.pow(nodeX - decisionX, 2) + Math.pow(nodeY - decisionY, 2));
+        if (distance < this.nodeWidth * 1.5) {
+          // Move node to provide more clearance
+          const angle = Math.atan2(nodeY - decisionY, nodeX - decisionX);
+          const newDistance = this.nodeWidth * 2;
+          node.x = decisionX + Math.cos(angle) * newDistance;
+          node.y = decisionY + Math.sin(angle) * newDistance;
+        }
+      });
+    });
+    
+    // Handle loop edges with extra clearance
+    loopEdges.forEach(loopEdge => {
+      const fromNode = adjustedNodes.find(n => n.id === loopEdge.from);
+      const toNode = adjustedNodes.find(n => n.id === loopEdge.to);
+      
+      if (fromNode && toNode) {
+        const fromX = fromNode.x || 0;
+        const fromY = fromNode.y || 0;
+        const toX = toNode.x || 0;
+        const toY = toNode.y || 0;
+        
+        // Create a clear path for the loop arrow
+        const centerX = (fromX + toX) / 2;
+        const centerY = (fromY + toY) / 2;
+        const loopRadius = Math.max(this.loopClearance, Math.abs(toX - fromX) / 2 + 50);
+        
+        // Move any nodes that might interfere with the loop path
+        adjustedNodes.forEach(node => {
+          if (node.id === fromNode.id || node.id === toNode.id) return;
+          
+          const nodeX = node.x || 0;
+          const nodeY = node.y || 0;
+          
+          // Check if node is in the loop path area
+          const distanceFromCenter = Math.sqrt(Math.pow(nodeX - centerX, 2) + Math.pow(nodeY - centerY, 2));
+          if (distanceFromCenter < loopRadius) {
+            // Move node outside the loop path
+            const angle = Math.atan2(nodeY - centerY, nodeX - centerX);
+            node.x = centerX + Math.cos(angle) * (loopRadius + this.nodeWidth);
+            node.y = centerY + Math.sin(angle) * (loopRadius + this.nodeWidth);
+          }
+        });
+      }
+    });
+    
+    return adjustedNodes;
+  }
+
+  // Detect loop patterns and adjust layout accordingly
+  private detectAndHandleLoops(nodes: FlowchartNode[], edges: FlowchartEdge[]): { nodes: FlowchartNode[], edges: FlowchartEdge[] } {
+    const loopEdges = edges.filter(edge => edge.type === 'loop' || edge.type === 'feedback');
+    const adjustedNodes = [...nodes];
+    const adjustedEdges = [...edges];
+    
+    // For each loop edge, ensure there's enough clearance
+    loopEdges.forEach(loopEdge => {
+      const fromNode = adjustedNodes.find(n => n.id === loopEdge.from);
+      const toNode = adjustedNodes.find(n => n.id === loopEdge.to);
+      
+      if (fromNode && toNode) {
+        // Add extra spacing for loop arrows
+        const fromY = fromNode.y || 0;
+        const toY = toNode.y || 0;
+        const minY = Math.min(fromY, toY);
+        
+        // Adjust nodes that might interfere with the loop
+        adjustedNodes.forEach(node => {
+          if (node.y !== undefined && node.y > minY && node.y < Math.max(fromY, toY)) {
+            // Move interfering nodes to the side
+            const currentX = node.x || 0;
+            const fromX = fromNode.x || 0;
+            const toX = toNode.x || 0;
+            const centerX = (fromX + toX) / 2;
+            
+            if (Math.abs(currentX - centerX) < this.nodeWidth * 2) {
+              // Move node to the side to avoid loop path
+              node.x = centerX + (currentX > centerX ? this.loopClearance : -this.loopClearance);
+            }
+          }
+        });
+      }
+    });
+    
+    return { nodes: adjustedNodes, edges: adjustedEdges };
+  }
+
   // Group nodes by type for better visual organization
   private groupNodesByType(nodes: FlowchartNode[]): FlowchartNode[][] {
     const groups: { [key: string]: FlowchartNode[] } = {
@@ -589,6 +684,70 @@ class FlowchartGenerator {
       groups.output,
       groups.end
     ].filter(group => group.length > 0);
+  }
+
+  // Generate Draw.io edge style with improved routing to avoid overlaps
+  private generateDrawIOEdgeStyle(edge: FlowchartEdge, fromNode: FlowchartNode, toNode: FlowchartNode): string {
+    const fromX = (fromNode.x || 0) + this.nodeWidth / 2;
+    const fromY = (fromNode.y || 0) + this.nodeHeight;
+    const toX = (toNode.x || 0) + this.nodeWidth / 2;
+    const toY = (toNode.y || 0);
+    
+    const deltaX = toX - fromX;
+    const deltaY = toY - fromY;
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    
+    // Base style for all edges
+    let style = 'endArrow=classic;html=1;rounded=0;';
+    
+    // Handle different edge types with appropriate routing
+    if (edge.type === 'loop' || edge.type === 'feedback') {
+      // Curved path for loops with better control points
+      const controlY = Math.min(fromY, toY) - 120; // Increased clearance
+      const offsetX = Math.max(100, Math.abs(deltaX) / 2 + 50); // Increased offset
+      const controlX1 = fromX + (deltaX > 0 ? offsetX : -offsetX);
+      const controlX2 = toX + (deltaX > 0 ? offsetX : -offsetX);
+      
+      style += `curved=1;curvature=0.3;`;
+      style += `exitX=0.5;exitY=1;exitDx=0;exitDy=0;`;
+      style += `entryX=0.5;entryY=0;entryDx=0;entryDy=0;`;
+      style += `strokeColor=#e74c3c;strokeWidth=3;`;
+    } else if (edge.type === 'connector') {
+      // Dashed line for connectors
+      style += `dashed=1;dashPattern=5 5;`;
+      style += `exitX=0.5;exitY=1;exitDx=0;exitDy=0;`;
+      style += `entryX=0.5;entryY=0;entryDx=0;entryDy=0;`;
+      style += `strokeColor=#95a5a6;strokeWidth=2;`;
+    } else if (edge.type === 'parallel') {
+      // Special styling for parallel processes
+      style += `exitX=0.5;exitY=1;exitDx=0;exitDy=0;`;
+      style += `entryX=0.5;entryY=0;entryDx=0;entryDy=0;`;
+      style += `strokeColor=#3498db;strokeWidth=2;`;
+    } else {
+      // Normal edges with improved routing
+      if (Math.abs(deltaX) < this.nodeWidth && deltaY > 0) {
+        // Direct vertical connection for aligned nodes
+        style += `exitX=0.5;exitY=1;exitDx=0;exitDy=0;`;
+        style += `entryX=0.5;entryY=0;entryDx=0;entryDy=0;`;
+      } else if (Math.abs(deltaX) > this.nodeWidth) {
+        // L-shaped path to avoid crossings
+        style += `exitX=0.5;exitY=1;exitDx=0;exitDy=0;`;
+        style += `entryX=0.5;entryY=0;entryDx=0;entryDy=0;`;
+        style += `orthogonal=1;`;
+      } else if (deltaY < 0) {
+        // Upward connection - use curved path
+        style += `curved=1;curvature=0.2;`;
+        style += `exitX=0.5;exitY=0;exitDx=0;exitDy=0;`;
+        style += `entryX=0.5;entryY=1;entryDx=0;entryDy=0;`;
+      } else {
+        // Direct diagonal connection for nearby nodes
+        style += `exitX=0.5;exitY=1;exitDx=0;exitDy=0;`;
+        style += `entryX=0.5;entryY=0;entryDx=0;entryDy=0;`;
+      }
+      style += `strokeColor=#2c3e50;strokeWidth=2;`;
+    }
+    
+    return style;
   }
 
   // Improve edge routing to minimize crossings and improve clarity
