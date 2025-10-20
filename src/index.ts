@@ -9,6 +9,8 @@ import {
 import { LayoutEngine } from './layout-engine.js';
 import { DrawIOGenerator } from './drawio-generator.js';
 import { CreateFlowchartRequest, FlowchartOptions, FlowchartNode } from './types.js';
+import { writeFileSync, mkdirSync, existsSync } from 'fs';
+import { join, dirname } from 'path';
 
 class FlowchartMCPServer {
   private server: Server;
@@ -252,6 +254,77 @@ class FlowchartMCPServer {
               required: ['name', 'inputVariables'],
             },
           },
+          {
+            name: 'generate_drawio_file',
+            description: 'Generate and save a draw.io file to the filesystem',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                name: {
+                  type: 'string',
+                  description: 'Name of the flowchart',
+                },
+                description: {
+                  type: 'string',
+                  description: 'Description of the flowchart',
+                },
+                nodes: {
+                  type: 'array',
+                  description: 'List of nodes in the flowchart',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      type: {
+                        type: 'string',
+                        enum: ['start', 'end', 'process', 'decision', 'input', 'output', 'connector'],
+                        description: 'Type of the node',
+                      },
+                      label: {
+                        type: 'string',
+                        description: 'Label text for the node',
+                      },
+                      id: {
+                        type: 'string',
+                        description: 'Optional unique ID for the node',
+                      },
+                    },
+                    required: ['type', 'label'],
+                  },
+                },
+                connections: {
+                  type: 'array',
+                  description: 'Connections between nodes',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      from: {
+                        type: 'string',
+                        description: 'Source node ID',
+                      },
+                      to: {
+                        type: 'string',
+                        description: 'Target node ID',
+                      },
+                      label: {
+                        type: 'string',
+                        description: 'Optional label for the connection',
+                      },
+                    },
+                    required: ['from', 'to'],
+                  },
+                },
+                outputPath: {
+                  type: 'string',
+                  description: 'Path where to save the .drawio file (e.g., "./output/flowchart.drawio")',
+                },
+                options: {
+                  type: 'object',
+                  description: 'Layout and styling options',
+                },
+              },
+              required: ['name', 'nodes', 'connections', 'outputPath'],
+            },
+          },
         ],
       };
     });
@@ -272,6 +345,9 @@ class FlowchartMCPServer {
 
           case 'create_find_max_flowchart':
             return await this.handleCreateFindMaxFlowchart(args as any);
+
+          case 'generate_drawio_file':
+            return await this.handleGenerateDrawIOFile(args as any);
 
           default:
             throw new Error(`Unknown tool: ${name}`);
@@ -464,6 +540,54 @@ class FlowchartMCPServer {
         ...args.options,
       },
     });
+  }
+
+  private async handleGenerateDrawIOFile(args: {
+    name: string;
+    description?: string;
+    nodes: Array<{ type: FlowchartNode['type']; label: string; id?: string }>;
+    connections: Array<{ from: string; to: string; label?: string }>;
+    outputPath: string;
+    options?: FlowchartOptions;
+  }) {
+    try {
+      // Generate the flowchart
+      const flowchart = this.layoutEngine.layoutFlowchart(
+        args.nodes,
+        args.connections,
+        args.options
+      );
+
+      // Generate the XML
+      const xml = this.drawIOGenerator.generateXML(flowchart);
+
+      // Ensure the output directory exists
+      const outputDir = dirname(args.outputPath);
+      if (!existsSync(outputDir)) {
+        mkdirSync(outputDir, { recursive: true });
+      }
+
+      // Write the file
+      writeFileSync(args.outputPath, xml, 'utf8');
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `✅ Successfully generated draw.io file!\n\n📁 File saved to: ${args.outputPath}\n📊 Flowchart: "${args.name}"${args.description ? ` - ${args.description}` : ''}\n\n🎯 You can now:\n- Open the file in draw.io\n- Import it into other diagramming tools\n- Share it with your team\n\n📄 File size: ${Math.round(xml.length / 1024 * 100) / 100} KB`,
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `❌ Error generating draw.io file: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+      };
+    }
   }
 
   async run() {
