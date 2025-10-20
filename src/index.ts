@@ -222,6 +222,36 @@ class FlowchartMCPServer {
               required: ['name', 'decisions'],
             },
           },
+          {
+            name: 'create_find_max_flowchart',
+            description: 'Create a flowchart for finding maximum value algorithm',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                name: {
+                  type: 'string',
+                  description: 'Name of the flowchart',
+                },
+                inputVariables: {
+                  type: 'array',
+                  description: 'List of input variables (e.g., ["num1", "num2", "num3"])',
+                  items: {
+                    type: 'string',
+                  },
+                },
+                outputMessage: {
+                  type: 'string',
+                  description: 'Output message template',
+                  default: 'The maximum number is: ',
+                },
+                options: {
+                  type: 'object',
+                  description: 'Layout and styling options',
+                },
+              },
+              required: ['name', 'inputVariables'],
+            },
+          },
         ],
       };
     });
@@ -239,6 +269,9 @@ class FlowchartMCPServer {
 
           case 'create_decision_flowchart':
             return await this.handleCreateDecisionFlowchart(args as any);
+
+          case 'create_find_max_flowchart':
+            return await this.handleCreateFindMaxFlowchart(args as any);
 
           default:
             throw new Error(`Unknown tool: ${name}`);
@@ -357,6 +390,79 @@ class FlowchartMCPServer {
       nodes,
       connections,
       options: args.options,
+    });
+  }
+
+  private async handleCreateFindMaxFlowchart(args: {
+    name: string;
+    inputVariables: string[];
+    outputMessage?: string;
+    options?: FlowchartOptions;
+  }) {
+    const nodes: Array<{ type: FlowchartNode['type']; label: string; id: string }> = [
+      { type: 'start', label: 'Start', id: 'start' },
+    ];
+
+    const connections: Array<{ from: string; to: string; label?: string }> = [];
+
+    // Add input nodes for each variable
+    args.inputVariables.forEach((variable, index) => {
+      const inputId = `input_${index}`;
+      nodes.push({ type: 'input', label: `Input ${variable}`, id: inputId });
+      
+      if (index === 0) {
+        connections.push({ from: 'start', to: inputId });
+      } else {
+        connections.push({ from: `input_${index - 1}`, to: inputId });
+      }
+    });
+
+    // Add initialization node
+    const initId = 'init';
+    nodes.push({ type: 'process', label: `Set max = ${args.inputVariables[0]}`, id: initId });
+    connections.push({ from: `input_${args.inputVariables.length - 1}`, to: initId });
+
+    // Add decision nodes for each comparison (except the first variable)
+    let lastNodeId = initId;
+    for (let i = 1; i < args.inputVariables.length; i++) {
+      const decisionId = `decision_${i}`;
+      const updateId = `update_${i}`;
+      const variable = args.inputVariables[i];
+      
+      nodes.push(
+        { type: 'decision', label: `Is ${variable} > max?`, id: decisionId },
+        { type: 'process', label: `Set max = ${variable}`, id: updateId }
+      );
+
+      connections.push({ from: lastNodeId, to: decisionId });
+      connections.push({ from: decisionId, to: updateId, label: 'Yes' });
+      
+      // The "No" path continues to the next decision or output
+      lastNodeId = decisionId;
+    }
+
+    // Add output and end nodes
+    const outputId = 'output';
+    const endId = 'end';
+    nodes.push(
+      { type: 'output', label: `${args.outputMessage || 'The maximum number is: '} + max`, id: outputId },
+      { type: 'end', label: 'End', id: endId }
+    );
+
+    // Connect the last decision to output (both Yes and No paths)
+    const lastDecisionId = `decision_${args.inputVariables.length - 1}`;
+    connections.push({ from: lastDecisionId, to: outputId, label: 'No' });
+    connections.push({ from: `update_${args.inputVariables.length - 1}`, to: outputId });
+    connections.push({ from: outputId, to: endId });
+
+    return this.handleCreateFlowchart({
+      name: args.name,
+      nodes,
+      connections,
+      options: {
+        direction: 'vertical',
+        ...args.options,
+      },
     });
   }
 

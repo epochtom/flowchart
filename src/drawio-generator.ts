@@ -12,8 +12,8 @@ export class DrawIOGenerator {
   };
 
   private static readonly EDGE_STYLES = {
-    default: 'edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;',
-    dashed: 'edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;'
+    default: 'edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;startArrow=none;',
+    dashed: 'edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=classic;startArrow=none;'
   };
 
   generateXML(flowchart: Flowchart): string {
@@ -24,7 +24,7 @@ ${mxfile}`;
 
   private createMxFile(flowchart: Flowchart): string {
     const diagram = this.createDiagram(flowchart);
-    return `<mxfile host="app.diagrams.net" modified="${new Date().toISOString()}" agent="MCP Flowchart Server" etag="1" version="22.1.16" type="device">
+    return `<mxfile host="app.diagrams.net" modified="${this.escapeXml(new Date().toISOString())}" agent="MCP Flowchart Server" etag="1" version="22.1.16" type="device">
   <diagram name="Flowchart" id="${this.generateId()}">
     ${diagram}
   </diagram>
@@ -52,8 +52,9 @@ ${mxfile}`;
   private createNodeCell(node: FlowchartNode): string {
     const style = DrawIOGenerator.NODE_STYLES[node.type] || DrawIOGenerator.NODE_STYLES.process;
     const customStyle = node.style ? `;${node.style}` : '';
+    const fullStyle = `${style}${customStyle}`;
     
-    return `<mxCell id="${node.id}" value="${this.escapeXml(node.label)}" style="${style}${customStyle}" vertex="1" parent="1">
+    return `<mxCell id="${this.escapeXml(node.id)}" value="${this.escapeXml(node.label)}" style="${this.escapeXml(fullStyle)}" vertex="1" parent="1">
       <mxGeometry x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}" as="geometry" />
     </mxCell>`;
   }
@@ -62,13 +63,14 @@ ${mxfile}`;
     const style = edge.style || DrawIOGenerator.EDGE_STYLES.default;
     const label = edge.label ? ` value="${this.escapeXml(edge.label)}"` : '';
     
-    return `<mxCell id="${edge.id}"${label} style="${style}" edge="1" parent="1" source="${edge.source}" target="${edge.target}">
+    return `<mxCell id="${this.escapeXml(edge.id)}"${label} style="${this.escapeXml(style)}" edge="1" parent="1" source="${this.escapeXml(edge.source)}" target="${this.escapeXml(edge.target)}">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>`;
   }
 
   private escapeXml(text: string): string {
-    return text
+    if (!text) return '';
+    return String(text)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')

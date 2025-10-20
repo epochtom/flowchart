@@ -4,8 +4,8 @@ export class LayoutEngine {
   private static readonly DEFAULT_OPTIONS: Required<FlowchartOptions> = {
     direction: 'vertical',
     spacing: {
-      horizontal: 200,
-      vertical: 100
+      horizontal: 150,
+      vertical: 80
     },
     nodeSize: {
       width: 120,
@@ -113,7 +113,7 @@ export class LayoutEngine {
       });
     }
 
-    // Position nodes in each layer
+    // Position nodes in each layer with better vertical layout
     layers.forEach((layerNodes, layerIndex) => {
       const layerWidth = layerNodes.length * (options.nodeSize.width + options.spacing.horizontal);
       const startX = -layerWidth / 2;
@@ -135,6 +135,9 @@ export class LayoutEngine {
         });
       });
     });
+
+    // Adjust positioning for better vertical flow
+    this.adjustVerticalLayout(flowchartNodes, options);
 
     return flowchartNodes;
   }
@@ -159,8 +162,24 @@ export class LayoutEngine {
     }
   }
 
-  private calculateBounds(nodes: FlowchartNode[]): { width: number; height: number } {
-    if (nodes.length === 0) return { width: 0, height: 0 };
+  private adjustVerticalLayout(nodes: FlowchartNode[], options: Required<FlowchartOptions>): void {
+    // Center nodes horizontally and improve vertical spacing
+    const bounds = this.calculateBounds(nodes);
+    const centerX = -bounds.width / 2;
+    
+    nodes.forEach(node => {
+      // Center horizontally
+      node.x = centerX + (node.x - bounds.width / 2);
+      
+      // Add extra spacing for decision nodes to create better branching
+      if (node.type === 'decision') {
+        node.y += options.spacing.vertical * 0.5;
+      }
+    });
+  }
+
+  private calculateBounds(nodes: FlowchartNode[]): { width: number; height: number; minX: number; minY: number } {
+    if (nodes.length === 0) return { width: 0, height: 0, minX: 0, minY: 0 };
     
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     
@@ -173,7 +192,9 @@ export class LayoutEngine {
     
     return {
       width: maxX - minX,
-      height: maxY - minY
+      height: maxY - minY,
+      minX,
+      minY
     };
   }
 }
