@@ -8,7 +8,7 @@ import { join } from 'path';
 // Define the flowchart node schema
 const FlowchartNodeSchema = z.object({
     id: z.string(),
-    type: z.enum(['start', 'process', 'decision', 'end', 'math', 'loop']),
+    type: z.enum(['start', 'process', 'decision', 'end', 'math', 'loop', 'input', 'output']),
     label: z.string(),
     x: z.number().optional(),
     y: z.number().optional(),
@@ -147,6 +147,13 @@ class FlowchartGenerator {
                     // Rounded rectangle for loop indicators
                     shape = `  <rect x="${x}" y="${y}" width="${width}" height="${height}" fill="#fff2cc" stroke="#d6b656" stroke-width="2" rx="15"/>\n`;
                     break;
+                case 'input':
+                case 'output':
+                    // Parallelogram for input/output
+                    const skew = 20;
+                    const points = `${x + skew},${y} ${x + width},${y} ${x + width - skew},${y + height} ${x},${y + height}`;
+                    shape = `  <polygon points="${points}" fill="#e8f5e8" stroke="#2e7d32" stroke-width="2"/>\n`;
+                    break;
                 case 'process':
                 default:
                     // Rectangle
@@ -210,6 +217,19 @@ class FlowchartGenerator {
                     break;
                 case 'decision':
                     style = 'rhombus;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;';
+                    geometry = `x="${x}" y="${y}" width="${this.nodeWidth}" height="${this.nodeHeight}"`;
+                    break;
+                case 'math':
+                    style = 'rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#6c757d;';
+                    geometry = `x="${x}" y="${y}" width="${this.mathNodeWidth}" height="${this.mathNodeHeight}"`;
+                    break;
+                case 'loop':
+                    style = 'rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;';
+                    geometry = `x="${x}" y="${y}" width="${this.nodeWidth}" height="${this.nodeHeight}"`;
+                    break;
+                case 'input':
+                case 'output':
+                    style = 'shape=parallelogram;whiteSpace=wrap;html=1;fillColor=#e8f5e8;strokeColor=#2e7d32;';
                     geometry = `x="${x}" y="${y}" width="${this.nodeWidth}" height="${this.nodeHeight}"`;
                     break;
                 case 'process':
@@ -410,7 +430,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                                             },
                                             type: {
                                                 type: 'string',
-                                                enum: ['start', 'process', 'decision', 'end', 'math', 'loop'],
+                                                enum: ['start', 'process', 'decision', 'end', 'math', 'loop', 'input', 'output'],
                                                 description: 'Type of the node (start, process, decision, end, math, loop)',
                                             },
                                             label: {
@@ -507,7 +527,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                                             },
                                             type: {
                                                 type: 'string',
-                                                enum: ['start', 'process', 'decision', 'end', 'math', 'loop'],
+                                                enum: ['start', 'process', 'decision', 'end', 'math', 'loop', 'input', 'output'],
                                                 description: 'Type of the node (start, process, decision, end, math, loop)',
                                             },
                                             label: {
@@ -608,7 +628,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                                             },
                                             type: {
                                                 type: 'string',
-                                                enum: ['start', 'process', 'decision', 'end', 'math', 'loop'],
+                                                enum: ['start', 'process', 'decision', 'end', 'math', 'loop', 'input', 'output'],
                                                 description: 'Type of the node (start, process, decision, end, math, loop)',
                                             },
                                             label: {

@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2024-01-01T00:00:00.000Z" agent="MCP-Flowchart-Server" version="1.0.0" etag="test" type="device">
+  <diagram name="Flowchart" id="flowchart">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="300" pageHeight="1320" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="Complete Loop Flowchart with All Symbols" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="100" y="10" width="100" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="start" value="Start" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;" vertex="1" parent="1">
+          <mxGeometry x="-100" y="0" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="input_data" value="Input: array, target" style="shape=parallelogram;whiteSpace=wrap;html=1;fillColor=#e8f5e8;strokeColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="-100" y="150" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="init_vars" value="Initialize: i = 0, found = false" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#4a148c;" vertex="1" parent="1">
+          <mxGeometry x="-100" y="300" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="loop_condition" value="i < array.length AND NOT found?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="-100" y="450" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="loop_body" value="Execute loop body:
+if (array[i] == target)
+  found = true
+i++" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#4a148c;" vertex="1" parent="1">
+          <mxGeometry x="-100" y="600" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="check_found" value="found == true?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="-100" y="750" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="success_process" value="Set result = i
+Set status = 'Found'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#4a148c;" vertex="1" parent="1">
+          <mxGeometry x="-260" y="900" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="not_found_process" value="Set result = -1
+Set status = 'Not Found'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#4a148c;" vertex="1" parent="1">
+          <mxGeometry x="60" y="900" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="output_result" value="Output: result, status" style="shape=parallelogram;whiteSpace=wrap;html=1;fillColor=#e8f5e8;strokeColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="-100" y="1050" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="end" value="End" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;" vertex="1" parent="1">
+          <mxGeometry x="-100" y="1200" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge_start_input_data" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="start" target="input_data">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="0" y="150" as="sourcePoint"/>
+            <mxPoint x="0" y="80" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_input_data_init_vars" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="input_data" target="init_vars">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="0" y="300" as="sourcePoint"/>
+            <mxPoint x="0" y="230" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_init_vars_loop_condition" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="init_vars" target="loop_condition">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="0" y="450" as="sourcePoint"/>
+            <mxPoint x="0" y="380" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_loop_condition_loop_body" value="Yes" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="loop_condition" target="loop_body">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="0" y="600" as="sourcePoint"/>
+            <mxPoint x="0" y="530" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_loop_body_check_found" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="loop_body" target="check_found">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="0" y="750" as="sourcePoint"/>
+            <mxPoint x="0" y="680" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_check_found_success_process" value="Yes" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="check_found" target="success_process">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="-160" y="900" as="sourcePoint"/>
+            <mxPoint x="0" y="830" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_check_found_not_found_process" value="No" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="check_found" target="not_found_process">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="160" y="900" as="sourcePoint"/>
+            <mxPoint x="0" y="830" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_success_process_output_result" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="success_process" target="output_result">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="0" y="1050" as="sourcePoint"/>
+            <mxPoint x="-160" y="980" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_not_found_process_output_result" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="not_found_process" target="output_result">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="0" y="1050" as="sourcePoint"/>
+            <mxPoint x="160" y="980" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_output_result_end" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="output_result" target="end">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="0" y="1200" as="sourcePoint"/>
+            <mxPoint x="0" y="1130" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_loop_condition_loop_body" value="Continue Loop" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="loop_condition" target="loop_body">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="0" y="600" as="sourcePoint"/>
+            <mxPoint x="0" y="530" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_check_found_loop_condition" value="No (continue loop)" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="check_found" target="loop_condition">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="0" y="450" as="sourcePoint"/>
+            <mxPoint x="0" y="830" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

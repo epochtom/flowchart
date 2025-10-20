@@ -1,0 +1,29 @@
+flowchart TD
+    title Complete Loop Flowchart with All Symbols
+    start[Start]
+    input_data[Input: array, target]
+    init_vars[Initialize: i = 0, found = false]
+    loop_condition{i < array.length AND NOT found?}
+    loop_body[Execute loop body:
+if (array[i] == target)
+  found = true
+i++]
+    check_found{found == true?}
+    success_process[Set result = i
+Set status = 'Found']
+    not_found_process[Set result = -1
+Set status = 'Not Found']
+    output_result[Output: result, status]
+    end[End]
+    start --> input_data
+    input_data --> init_vars
+    init_vars --> loop_condition
+    loop_condition -->|Yes| loop_body
+    loop_body --> check_found
+    check_found -->|Yes| success_process
+    check_found -->|No| not_found_process
+    success_process --> output_result
+    not_found_process --> output_result
+    output_result --> end
+    loop_condition -->|Continue Loop| loop_body
+    check_found -->|No (continue loop)| loop_condition
