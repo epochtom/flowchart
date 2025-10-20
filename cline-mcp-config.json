@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "flowchart-mcp-server": {
+      "command": "node",
+      "args": ["dist/index.js"],
+      "cwd": "C:\\Users\\tommy\\Documents\\program\\program\\flowchart"
+    }
+  }
+}
