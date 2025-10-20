@@ -142,24 +142,10 @@ export class LayoutEngine {
     return flowchartNodes;
   }
 
-  private getNodeStyle(type: FlowchartNode['type'], options: Required<FlowchartOptions>): string {
-    const baseStyle = `fillColor=${options.style.backgroundColor};strokeColor=${options.style.borderColor};fontColor=${options.style.textColor};`;
-    
-    switch (type) {
-      case 'start':
-        return `${baseStyle}ellipse;whiteSpace=wrap;html=1;aspect=fixed;`;
-      case 'end':
-        return `${baseStyle}ellipse;whiteSpace=wrap;html=1;aspect=fixed;`;
-      case 'decision':
-        return `${baseStyle}rhombus;whiteSpace=wrap;html=1;`;
-      case 'input':
-      case 'output':
-        return `${baseStyle}shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;`;
-      case 'connector':
-        return `${baseStyle}ellipse;whiteSpace=wrap;html=1;aspect=fixed;`;
-      default:
-        return `${baseStyle}rounded=1;whiteSpace=wrap;html=1;`;
-    }
+  private getNodeStyle(type: FlowchartNode['type'], options: Required<FlowchartOptions>): string | undefined {
+    // Use the predefined styles from DrawIOGenerator instead of creating custom ones
+    // This prevents duplicate properties and ensures proper formatting
+    return undefined; // Let DrawIOGenerator handle the styling
   }
 
   private adjustVerticalLayout(nodes: FlowchartNode[], options: Required<FlowchartOptions>): void {

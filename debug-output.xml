@@ -1,0 +1,43 @@
+Created flowchart "Simple Test"
+
+Draw.io XML:
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2025-10-20T06:50:42.047Z" agent="MCP Flowchart Server" etag="1" version="22.1.16" type="device">
+  <diagram name="Flowchart" id="rwpi6rizy">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+    <mxCell id="node_0" value="Start" style="fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;ellipse;whiteSpace=wrap;html=1;aspect=fixed;" vertex="1" parent="1">
+      <mxGeometry x="-255" y="0" width="120" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="node_1" value="Step 1" style="fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+      <mxGeometry x="-255" y="140" width="120" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="node_2" value="Step 2" style="fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+      <mxGeometry x="-255" y="280" width="120" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="node_3" value="Step 3" style="fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+      <mxGeometry x="-255" y="420" width="120" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="node_4" value="End" style="fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;ellipse;whiteSpace=wrap;html=1;aspect=fixed;" vertex="1" parent="1">
+      <mxGeometry x="-255" y="560" width="120" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="edge_0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;startArrow=none;" edge="1" parent="1" source="node_0" target="node_1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="edge_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;startArrow=none;" edge="1" parent="1" source="node_1" target="node_2">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="edge_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;startArrow=none;" edge="1" parent="1" source="node_2" target="node_3">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="edge_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;startArrow=none;" edge="1" parent="1" source="node_3" target="node_4">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+  </root>
+</mxGraphModel>
+  </diagram>
+</mxfile>
+```

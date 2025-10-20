@@ -50,11 +50,10 @@ ${mxfile}`;
   }
 
   private createNodeCell(node: FlowchartNode): string {
-    const style = DrawIOGenerator.NODE_STYLES[node.type] || DrawIOGenerator.NODE_STYLES.process;
-    const customStyle = node.style ? `;${node.style}` : '';
-    const fullStyle = `${style}${customStyle}`;
+    // Use the predefined style for the node type, or the custom style if provided
+    const style = node.style || (DrawIOGenerator.NODE_STYLES[node.type] || DrawIOGenerator.NODE_STYLES.process);
     
-    return `<mxCell id="${this.escapeXml(node.id)}" value="${this.escapeXml(node.label)}" style="${this.escapeXml(fullStyle)}" vertex="1" parent="1">
+    return `<mxCell id="${this.escapeXml(node.id)}" value="${this.escapeXml(node.label)}" style="${this.escapeXml(style)}" vertex="1" parent="1">
       <mxGeometry x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}" as="geometry" />
     </mxCell>`;
   }
