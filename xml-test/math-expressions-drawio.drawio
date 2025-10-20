@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2024-01-01T00:00:00.000Z" agent="MCP-Flowchart-Server" version="1.0.0" etag="test" type="device">
+  <diagram name="Flowchart" id="flowchart">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="300" pageHeight="1170" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="Mathematical Expressions Test" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="100" y="10" width="100" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="start" value="Start" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;" vertex="1" parent="1">
+          <mxGeometry x="-100" y="0" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="math1" value="Calculate: x &lt; y AND z &gt; 0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#6c757d;" vertex="1" parent="1">
+          <mxGeometry x="-100" y="150" width="300" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="math2" value="Matrix: A[i][j] = B[i][j] + C[i][j]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#6c757d;" vertex="1" parent="1">
+          <mxGeometry x="-100" y="300" width="300" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="math3" value="Condition: if (x &lt; 10 &amp;&amp; y &gt; 5) then z = x + y" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#6c757d;" vertex="1" parent="1">
+          <mxGeometry x="-100" y="450" width="300" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="math4" value="Formula: f(x) = x² + 2x + 1 where x ≠ 0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#6c757d;" vertex="1" parent="1">
+          <mxGeometry x="-100" y="600" width="300" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="math5" value="Inequality: |x - y| &lt; ε where ε &gt; 0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#6c757d;" vertex="1" parent="1">
+          <mxGeometry x="-100" y="750" width="300" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="decision" value="Is result &lt; threshold?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="-100" y="900" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="process" value="Update: x = x + 1, y = y - 1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#4a148c;" vertex="1" parent="1">
+          <mxGeometry x="-260" y="1050" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="end" value="End" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1050" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge_start_math1" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="start" target="math1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="0" y="150" as="sourcePoint"/>
+            <mxPoint x="0" y="80" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_math1_math2" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="math1" target="math2">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="0" y="300" as="sourcePoint"/>
+            <mxPoint x="0" y="230" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_math2_math3" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="math2" target="math3">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="0" y="450" as="sourcePoint"/>
+            <mxPoint x="0" y="380" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_math3_math4" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="math3" target="math4">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="0" y="600" as="sourcePoint"/>
+            <mxPoint x="0" y="530" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_math4_math5" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="math4" target="math5">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="0" y="750" as="sourcePoint"/>
+            <mxPoint x="0" y="680" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_math5_decision" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="math5" target="decision">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="0" y="900" as="sourcePoint"/>
+            <mxPoint x="0" y="830" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_decision_process" value="Yes: result &lt; threshold" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="decision" target="process">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="-160" y="1050" as="sourcePoint"/>
+            <mxPoint x="0" y="980" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_decision_end" value="No: result &gt;= threshold" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="decision" target="end">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="160" y="1050" as="sourcePoint"/>
+            <mxPoint x="0" y="980" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_process_math1" value="Loop back" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="process" target="math1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="0" y="150" as="sourcePoint"/>
+            <mxPoint x="-160" y="1130" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -51,6 +51,16 @@ class FlowchartGenerator {
   private mathNodeWidth = 300;
   private mathNodeHeight = 100;
 
+  // Utility function to escape XML characters
+  private escapeXml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   generateSVG(flowchart: Flowchart): string {
     const { nodes, edges, title } = flowchart;
     
@@ -77,7 +87,7 @@ class FlowchartGenerator {
     
     // Add title if provided
     if (title) {
-      svg += `  <text x="${width / 2}" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold">${title}</text>\n`;
+      svg += `  <text x="${width / 2}" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold">${this.escapeXml(title)}</text>\n`;
     }
 
     // Add edges first (so they appear behind nodes)
@@ -134,7 +144,7 @@ class FlowchartGenerator {
           const midX = (fromX + toX) / 2;
           const midY = (fromY + toY) / 2;
           const labelY = edge.type === 'loop' || edge.type === 'feedback' ? midY - 20 : midY - 5;
-          svg += `  <text x="${midX}" y="${labelY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="${strokeColor}">${edge.label}</text>\n`;
+          svg += `  <text x="${midX}" y="${labelY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="${strokeColor}">${this.escapeXml(edge.label)}</text>\n`;
         }
       }
     }
@@ -207,7 +217,7 @@ class FlowchartGenerator {
       
       for (let i = 0; i < lines.length; i++) {
         const lineY = startY + (i * lineHeight);
-        svg += `  <text x="${x + width / 2}" y="${lineY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${fontSize}" fill="#333">${lines[i]}</text>\n`;
+        svg += `  <text x="${x + width / 2}" y="${lineY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${fontSize}" fill="#333">${this.escapeXml(lines[i])}</text>\n`;
       }
     }
 
@@ -240,7 +250,7 @@ class FlowchartGenerator {
     if (title) {
       const titleX = width / 2;
       const titleY = 20;
-      drawio += `        <mxCell id="title" value="${title}" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">\n`;
+      drawio += `        <mxCell id="title" value="${this.escapeXml(title)}" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">\n`;
       drawio += `          <mxGeometry x="${titleX - 50}" y="${titleY - 10}" width="100" height="20" as="geometry"/>\n`;
       drawio += '        </mxCell>\n';
     }
@@ -283,7 +293,7 @@ class FlowchartGenerator {
           break;
       }
       
-      drawio += `        <mxCell id="${node.id}" value="${node.label}" style="${style}" vertex="1" parent="1">\n`;
+      drawio += `        <mxCell id="${node.id}" value="${this.escapeXml(node.label)}" style="${style}" vertex="1" parent="1">\n`;
       drawio += `          <mxGeometry ${geometry} as="geometry"/>\n`;
       drawio += '        </mxCell>\n';
     }
@@ -317,7 +327,7 @@ class FlowchartGenerator {
         }
         
         const edgeId = `edge_${edge.from}_${edge.to}`;
-        drawio += `        <mxCell id="${edgeId}" value="${edge.label || ''}" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="${edge.from}" target="${edge.to}">\n`;
+        drawio += `        <mxCell id="${edgeId}" value="${this.escapeXml(edge.label || '')}" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="${edge.from}" target="${edge.to}">\n`;
         drawio += `          <mxGeometry width="50" height="50" relative="1" as="geometry">\n`;
         drawio += `            <mxPoint x="${toX}" y="${toY}" as="sourcePoint"/>\n`;
         drawio += `            <mxPoint x="${fromX}" y="${fromY}" as="targetPoint"/>\n`;
