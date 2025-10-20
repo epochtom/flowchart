@@ -20,8 +20,12 @@ const FlowchartEdgeSchema = z.object({
     from: z.string(),
     to: z.string(),
     label: z.string().optional(),
-    type: z.enum(['normal', 'loop', 'feedback']).optional(),
+    type: z.enum(['normal', 'loop', 'feedback', 'connector']).optional(),
     curve: z.boolean().optional(),
+    connector: z.object({
+        id: z.string(),
+        label: z.string().optional(),
+    }).optional(),
 });
 // Define the flowchart schema
 const FlowchartSchema = z.object({
@@ -30,12 +34,18 @@ const FlowchartSchema = z.object({
     title: z.string().optional(),
 });
 class FlowchartGenerator {
-    nodeWidth = 200;
-    nodeHeight = 80;
-    spacing = 120;
-    levelSpacing = 150;
-    mathNodeWidth = 300;
-    mathNodeHeight = 100;
+    // Standard symbol dimensions following best practices
+    nodeWidth = 180;
+    nodeHeight = 60;
+    spacing = 150; // Increased for better arrow clearance
+    levelSpacing = 180; // Increased for better vertical spacing
+    mathNodeWidth = 250;
+    mathNodeHeight = 80;
+    // Layout configuration for better structure
+    maxNodesPerLevel = 3; // Reduced to prevent overcrowding
+    minSpacing = 120; // Increased minimum spacing
+    groupSpacing = 60; // Increased group spacing
+    arrowClearance = 40; // Space reserved for arrows
     // Utility function to escape XML characters
     escapeXml(text) {
         return text
@@ -60,8 +70,25 @@ class FlowchartGenerator {
         svg += `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">\n`;
         // Add definitions section first (required for draw.io compatibility)
         svg += '  <defs>\n';
-        svg += '    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">\n';
-        svg += '      <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>\n';
+        // Standard arrow for normal flow - uniform style with consistent thickness
+        svg += '    <marker id="arrowhead" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">\n';
+        svg += '      <polygon points="0 0, 12 4, 0 8" fill="#2c3e50" stroke="#2c3e50" stroke-width="2"/>\n';
+        svg += '    </marker>\n';
+        // Loop arrow for feedback - consistent with standard arrow but different color
+        svg += '    <marker id="loop-arrow" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">\n';
+        svg += '      <polygon points="0 0, 12 4, 0 8" fill="#e74c3c" stroke="#e74c3c" stroke-width="2"/>\n';
+        svg += '    </marker>\n';
+        // Dashed arrow for alternative paths - consistent size but dashed line
+        svg += '    <marker id="dashed-arrow" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">\n';
+        svg += '      <polygon points="0 0, 12 4, 0 8" fill="#7f8c8d" stroke="#7f8c8d" stroke-width="2"/>\n';
+        svg += '    </marker>\n';
+        // Thick arrow for emphasis - for important flows
+        svg += '    <marker id="thick-arrow" markerWidth="14" markerHeight="10" refX="13" refY="5" orient="auto">\n';
+        svg += '      <polygon points="0 0, 14 5, 0 10" fill="#2c3e50" stroke="#2c3e50" stroke-width="3"/>\n';
+        svg += '    </marker>\n';
+        // Small arrow for short connections
+        svg += '    <marker id="small-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">\n';
+        svg += '      <polygon points="0 0, 8 3, 0 6" fill="#2c3e50" stroke="#2c3e50" stroke-width="1.5"/>\n';
         svg += '    </marker>\n';
         svg += '  </defs>\n';
         // Add title if provided
@@ -81,43 +108,83 @@ class FlowchartGenerator {
                 const fromY = (fromNode.y || 0) + fromHeight;
                 const toX = (toNode.x || 0) + toWidth / 2;
                 const toY = (toNode.y || 0);
-                // Calculate if we need a curved path to avoid crossings
-                const deltaY = toY - fromY;
-                const deltaX = toX - fromX;
-                let path = '';
-                let strokeColor = '#333';
-                let strokeWidth = '2';
-                // Handle different edge types
+                // Use improved edge routing for better clarity
+                const path = this.calculateEdgePath(fromNode, toNode, edge);
+                let strokeColor = '#2c3e50';
+                let strokeWidth = '2.5'; // Consistent thickness for all arrows
+                let strokeDasharray = 'none';
+                let markerEnd = 'url(#arrowhead)';
+                // Handle different edge types with appropriate styling
                 if (edge.type === 'loop' || edge.type === 'feedback') {
                     strokeColor = '#e74c3c';
-                    strokeWidth = '3';
-                    // Create a curved path for loops
-                    const controlY = Math.min(fromY, toY) - 50;
-                    const controlX1 = fromX + 50;
-                    const controlX2 = toX + 50;
-                    path = `M ${fromX} ${fromY} Q ${controlX1} ${controlY} ${controlX2} ${controlY} Q ${controlX2} ${controlY} ${toX} ${toY}`;
+                    strokeWidth = '2.5'; // Consistent thickness
+                    markerEnd = 'url(#loop-arrow)';
                 }
-                else if (Math.abs(deltaX) < Math.max(fromWidth, toWidth) && deltaY > 0) {
-                    // Direct vertical connection
-                    path = `M ${fromX} ${fromY} L ${toX} ${toY}`;
+                else if (edge.type === 'connector') {
+                    strokeColor = '#95a5a6';
+                    strokeWidth = '2.5'; // Consistent thickness
+                    strokeDasharray = '4,4'; // Slightly larger dash pattern
+                    markerEnd = 'url(#dashed-arrow)';
                 }
-                else if (Math.abs(deltaX) > Math.max(fromWidth, toWidth)) {
-                    // Horizontal then vertical path to avoid crossings
-                    const midY = fromY + deltaY / 2;
-                    path = `M ${fromX} ${fromY} L ${fromX} ${midY} L ${toX} ${midY} L ${toX} ${toY}`;
+                else if (edge.type === 'normal') {
+                    strokeColor = '#2c3e50';
+                    strokeWidth = '2.5'; // Consistent thickness
+                    markerEnd = 'url(#arrowhead)';
                 }
                 else {
-                    // Direct diagonal connection
-                    path = `M ${fromX} ${fromY} L ${toX} ${toY}`;
+                    // Alternative paths
+                    strokeColor = '#7f8c8d';
+                    strokeWidth = '2.5'; // Consistent thickness
+                    strokeDasharray = '6,6'; // Larger dash pattern for alternatives
+                    markerEnd = 'url(#dashed-arrow)';
                 }
-                // Draw arrow path
-                svg += `  <path d="${path}" stroke="${strokeColor}" stroke-width="${strokeWidth}" fill="none" marker-end="url(#arrowhead)"/>\n`;
-                // Add edge label if provided
+                // Draw arrow path with appropriate styling
+                svg += `  <path d="${path}" stroke="${strokeColor}" stroke-width="${strokeWidth}" fill="none" stroke-dasharray="${strokeDasharray}" marker-end="${markerEnd}"/>\n`;
+                // Add edge label if provided with improved positioning
                 if (edge.label) {
                     const midX = (fromX + toX) / 2;
                     const midY = (fromY + toY) / 2;
-                    const labelY = edge.type === 'loop' || edge.type === 'feedback' ? midY - 20 : midY - 5;
-                    svg += `  <text x="${midX}" y="${labelY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="${strokeColor}">${this.escapeXml(edge.label)}</text>\n`;
+                    const deltaX = toX - fromX;
+                    // Position labels based on edge type and node types for better readability
+                    let labelY = midY - 8;
+                    let labelX = midX;
+                    let fontSize = '11';
+                    let fontWeight = 'normal';
+                    let labelWidth = Math.max(30, edge.label.length * 6); // Dynamic width based on text length
+                    // Special positioning for decision point labels
+                    if (toNode.type === 'decision') {
+                        // Position labels closer to decision nodes for clarity
+                        labelY = toY - 15;
+                        fontSize = '10';
+                        fontWeight = 'bold';
+                        labelWidth = Math.max(25, edge.label.length * 5);
+                    }
+                    else if (edge.type === 'loop' || edge.type === 'feedback') {
+                        labelY = midY - 30; // Higher for loop arrows
+                        fontSize = '10';
+                        fontWeight = 'bold';
+                        labelWidth = Math.max(35, edge.label.length * 6);
+                    }
+                    else if (edge.type === 'normal') {
+                        labelY = midY - 8;
+                        fontSize = '11';
+                        fontWeight = 'normal';
+                    }
+                    else {
+                        labelY = midY - 5;
+                        fontSize = '10';
+                        fontWeight = 'italic';
+                    }
+                    // Adjust label position for better arrow clearance
+                    if (Math.abs(deltaX) > Math.max(fromWidth, toWidth)) {
+                        // For L-shaped paths, position label at the corner
+                        labelX = fromX + (deltaX > 0 ? 20 : -20);
+                        labelY = midY - 20;
+                    }
+                    // Add background for better readability with rounded corners
+                    const bgPadding = 4;
+                    svg += `  <rect x="${labelX - labelWidth / 2 - bgPadding}" y="${labelY - 12}" width="${labelWidth + bgPadding * 2}" height="16" fill="white" stroke="${strokeColor}" stroke-width="1" rx="4"/>\n`;
+                    svg += `  <text x="${labelX}" y="${labelY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="${fontWeight}" fill="${strokeColor}">${this.escapeXml(edge.label)}</text>\n`;
                 }
             }
         }
@@ -170,12 +237,36 @@ class FlowchartGenerator {
                     break;
             }
             svg += shape;
-            // Handle text wrapping for longer labels
+            // Handle text wrapping for better clarity and readability
             const words = node.label.split(' ');
-            const maxWordsPerLine = node.type === 'math' ? 8 : 6;
+            let maxWordsPerLine = 6;
+            // Adjust line length based on node type for better readability
+            switch (node.type) {
+                case 'math':
+                    maxWordsPerLine = 6;
+                    break;
+                case 'decision':
+                    maxWordsPerLine = 4;
+                    break;
+                case 'input':
+                case 'output':
+                    maxWordsPerLine = 5;
+                    break;
+                case 'process':
+                default:
+                    maxWordsPerLine = 6;
+                    break;
+            }
             const lines = [];
             for (let i = 0; i < words.length; i += maxWordsPerLine) {
-                lines.push(words.slice(i, i + maxWordsPerLine).join(' '));
+                const line = words.slice(i, i + maxWordsPerLine).join(' ');
+                // Ensure lines don't get too long
+                if (line.length > 25) {
+                    lines.push(line.substring(0, 22) + '...');
+                }
+                else {
+                    lines.push(line);
+                }
             }
             const lineHeight = parseInt(fontSize) + 2;
             const startY = textY - ((lines.length - 1) * lineHeight) / 2;
@@ -329,10 +420,13 @@ class FlowchartGenerator {
         const positionedNodes = [...nodes];
         const startNode = positionedNodes.find(n => n.type === 'start');
         if (!startNode) {
-            // If no start node, position nodes in a simple grid
+            // If no start node, position nodes in a logical grid following best practices
+            const nodesPerRow = Math.min(this.maxNodesPerLevel, Math.ceil(Math.sqrt(positionedNodes.length)));
             positionedNodes.forEach((node, index) => {
-                node.x = (index % 3) * (this.nodeWidth + this.spacing);
-                node.y = Math.floor(index / 3) * (this.nodeHeight + this.spacing);
+                const row = Math.floor(index / nodesPerRow);
+                const col = index % nodesPerRow;
+                node.x = col * (this.nodeWidth + this.spacing) - (nodesPerRow - 1) * (this.nodeWidth + this.spacing) / 2;
+                node.y = row * (this.nodeHeight + this.levelSpacing);
             });
             return positionedNodes;
         }
@@ -379,15 +473,26 @@ class FlowchartGenerator {
         };
         // Start from the start node
         visit(startNode.id, 0);
-        // Position nodes in levels
+        // Position nodes in levels with better structure and grouping
         for (let levelIndex = 0; levelIndex < levels.length; levelIndex++) {
             const levelNodes = levels[levelIndex];
-            const levelWidth = levelNodes.length * (this.nodeWidth + this.spacing) - this.spacing;
-            const startX = -levelWidth / 2;
-            for (let i = 0; i < levelNodes.length; i++) {
-                const node = levelNodes[i];
-                node.x = startX + i * (this.nodeWidth + this.spacing);
-                node.y = levelIndex * this.levelSpacing;
+            // Group nodes by type for better visual organization
+            const groupedNodes = this.groupNodesByType(levelNodes);
+            let currentX = 0;
+            const levelY = levelIndex * this.levelSpacing;
+            for (const group of groupedNodes) {
+                if (group.length === 0)
+                    continue;
+                // Calculate group width with proper spacing
+                const groupWidth = group.length * (this.nodeWidth + this.minSpacing) - this.minSpacing;
+                const groupStartX = currentX - groupWidth / 2;
+                for (let i = 0; i < group.length; i++) {
+                    const node = group[i];
+                    node.x = groupStartX + i * (this.nodeWidth + this.minSpacing);
+                    node.y = levelY;
+                }
+                // Add extra spacing for arrow clearance
+                currentX += groupWidth + this.groupSpacing + this.arrowClearance;
             }
         }
         // Handle any remaining unvisited nodes (cycles, disconnected components)
@@ -402,6 +507,92 @@ class FlowchartGenerator {
             });
         }
         return positionedNodes;
+    }
+    // Group nodes by type for better visual organization
+    groupNodesByType(nodes) {
+        const groups = {
+            start: [],
+            input: [],
+            process: [],
+            decision: [],
+            math: [],
+            loop: [],
+            output: [],
+            end: []
+        };
+        nodes.forEach(node => {
+            if (groups[node.type]) {
+                groups[node.type].push(node);
+            }
+            else {
+                groups.process.push(node); // Default to process group
+            }
+        });
+        // Return groups in logical order
+        return [
+            groups.start,
+            groups.input,
+            groups.process,
+            groups.math,
+            groups.decision,
+            groups.loop,
+            groups.output,
+            groups.end
+        ].filter(group => group.length > 0);
+    }
+    // Improve edge routing to minimize crossings and improve clarity
+    calculateEdgePath(fromNode, toNode, edge) {
+        const fromWidth = fromNode.width || (fromNode.type === 'math' ? this.mathNodeWidth : this.nodeWidth);
+        const fromHeight = fromNode.height || (fromNode.type === 'math' ? this.mathNodeHeight : this.nodeHeight);
+        const toWidth = toNode.width || (toNode.type === 'math' ? this.mathNodeWidth : this.nodeWidth);
+        const toHeight = toNode.height || (toNode.type === 'math' ? this.mathNodeHeight : this.nodeHeight);
+        // Calculate precise connection points on shape edges
+        const fromX = (fromNode.x || 0) + fromWidth / 2;
+        const fromY = (fromNode.y || 0) + fromHeight;
+        const toX = (toNode.x || 0) + toWidth / 2;
+        const toY = (toNode.y || 0);
+        const deltaY = toY - fromY;
+        const deltaX = toX - fromX;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        // Handle different edge types with improved routing
+        if (edge.type === 'loop' || edge.type === 'feedback') {
+            // Create smooth curved path for loops with better control points
+            const controlY = Math.min(fromY, toY) - 120; // Increased clearance for loops
+            const offsetX = Math.max(100, Math.abs(deltaX) / 2); // Increased offset
+            const controlX1 = fromX + (deltaX > 0 ? offsetX : -offsetX);
+            const controlX2 = toX + (deltaX > 0 ? offsetX : -offsetX);
+            return `M ${fromX} ${fromY} Q ${controlX1} ${controlY} ${controlX2} ${controlY} Q ${controlX2} ${controlY} ${toX} ${toY}`;
+        }
+        else if (edge.type === 'connector') {
+            // Use connector for long paths - simplified straight line
+            return `M ${fromX} ${fromY} L ${toX} ${toY}`;
+        }
+        else if (Math.abs(deltaX) < Math.max(fromWidth, toWidth) && deltaY > 0) {
+            // Direct vertical connection for aligned nodes
+            return `M ${fromX} ${fromY} L ${toX} ${toY}`;
+        }
+        else if (Math.abs(deltaX) > Math.max(fromWidth, toWidth)) {
+            // L-shaped path to avoid crossings with proper spacing
+            const midY = fromY + deltaY / 2;
+            const spacing = Math.max(40, Math.min(80, Math.abs(deltaX) / 3)); // Increased spacing
+            return `M ${fromX} ${fromY} L ${fromX} ${midY - spacing} L ${toX} ${midY - spacing} L ${toX} ${toY}`;
+        }
+        else if (deltaY < 0) {
+            // Upward connection - use curved path with more clearance
+            const controlY = Math.min(fromY, toY) - 80; // Increased clearance
+            const controlX = (fromX + toX) / 2;
+            return `M ${fromX} ${fromY} Q ${controlX} ${controlY} ${toX} ${toY}`;
+        }
+        else if (distance < 120) {
+            // Very close nodes - use curved path to avoid overlap
+            const controlY = (fromY + toY) / 2;
+            const controlX = (fromX + toX) / 2 + (deltaX > 0 ? 40 : -40);
+            return `M ${fromX} ${fromY} Q ${controlX} ${controlY} ${toX} ${toY}`;
+        }
+        else {
+            // Direct diagonal connection for nearby nodes
+            return `M ${fromX} ${fromY} L ${toX} ${toY}`;
+        }
     }
 }
 const server = new Server({
@@ -486,7 +677,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                                             },
                                             type: {
                                                 type: 'string',
-                                                enum: ['normal', 'loop', 'feedback'],
+                                                enum: ['normal', 'loop', 'feedback', 'connector'],
                                                 description: 'Type of the edge (normal, loop, feedback)',
                                             },
                                             curve: {
@@ -583,7 +774,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                                             },
                                             type: {
                                                 type: 'string',
-                                                enum: ['normal', 'loop', 'feedback'],
+                                                enum: ['normal', 'loop', 'feedback', 'connector'],
                                                 description: 'Type of the edge (normal, loop, feedback)',
                                             },
                                             curve: {
@@ -684,7 +875,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                                             },
                                             type: {
                                                 type: 'string',
-                                                enum: ['normal', 'loop', 'feedback'],
+                                                enum: ['normal', 'loop', 'feedback', 'connector'],
                                                 description: 'Type of the edge (normal, loop, feedback)',
                                             },
                                             curve: {
