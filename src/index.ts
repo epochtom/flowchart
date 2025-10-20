@@ -89,35 +89,21 @@ class FlowchartGenerator {
     let svg = '<?xml version="1.0" encoding="UTF-8"?>\n';
     svg += `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">\n`;
     
-  // Add definitions section first (required for draw.io compatibility)
-  svg += '  <defs>\n';
-  
-  // Standard arrow for normal flow - uniform style with consistent thickness
-  svg += '    <marker id="arrowhead" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">\n';
-  svg += '      <polygon points="0 0, 12 4, 0 8" fill="#2c3e50" stroke="#2c3e50" stroke-width="2"/>\n';
-  svg += '    </marker>\n';
-  
-  // Loop arrow for feedback - consistent with standard arrow but different color
-  svg += '    <marker id="loop-arrow" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">\n';
-  svg += '      <polygon points="0 0, 12 4, 0 8" fill="#e74c3c" stroke="#e74c3c" stroke-width="2"/>\n';
-  svg += '    </marker>\n';
-  
-  // Dashed arrow for alternative paths - consistent size but dashed line
-  svg += '    <marker id="dashed-arrow" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">\n';
-  svg += '      <polygon points="0 0, 12 4, 0 8" fill="#7f8c8d" stroke="#7f8c8d" stroke-width="2"/>\n';
-  svg += '    </marker>\n';
-  
-  // Thick arrow for emphasis - for important flows
-  svg += '    <marker id="thick-arrow" markerWidth="14" markerHeight="10" refX="13" refY="5" orient="auto">\n';
-  svg += '      <polygon points="0 0, 14 5, 0 10" fill="#2c3e50" stroke="#2c3e50" stroke-width="3"/>\n';
-  svg += '    </marker>\n';
-  
-  // Small arrow for short connections
-  svg += '    <marker id="small-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">\n';
-  svg += '      <polygon points="0 0, 8 3, 0 6" fill="#2c3e50" stroke="#2c3e50" stroke-width="1.5"/>\n';
-  svg += '    </marker>\n';
-  
-  svg += '  </defs>\n';
+    // Add definitions section first (required for draw.io compatibility)
+    svg += '  <defs>\n';
+    // Standard arrow for normal flow
+    svg += '    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">\n';
+    svg += '      <polygon points="0 0, 10 3.5, 0 7" fill="#2c3e50" stroke="#2c3e50" stroke-width="1"/>\n';
+    svg += '    </marker>\n';
+    // Loop arrow for feedback
+    svg += '    <marker id="loop-arrow" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">\n';
+    svg += '      <polygon points="0 0, 12 4, 0 8" fill="#e74c3c" stroke="#e74c3c" stroke-width="1"/>\n';
+    svg += '    </marker>\n';
+    // Dashed arrow for alternative paths
+    svg += '    <marker id="dashed-arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">\n';
+    svg += '      <polygon points="0 0, 10 3.5, 0 7" fill="#7f8c8d" stroke="#7f8c8d" stroke-width="1"/>\n';
+    svg += '    </marker>\n';
+    svg += '  </defs>\n';
     
     // Add title if provided
     if (title) {
@@ -143,29 +129,29 @@ class FlowchartGenerator {
         // Use improved edge routing for better clarity
         const path = this.calculateEdgePath(fromNode, toNode, edge);
         let strokeColor = '#2c3e50';
-        let strokeWidth = '2.5';  // Consistent thickness for all arrows
+        let strokeWidth = '2';
         let strokeDasharray = 'none';
         let markerEnd = 'url(#arrowhead)';
         
         // Handle different edge types with appropriate styling
         if (edge.type === 'loop' || edge.type === 'feedback') {
           strokeColor = '#e74c3c';
-          strokeWidth = '2.5';  // Consistent thickness
+          strokeWidth = '3';
           markerEnd = 'url(#loop-arrow)';
         } else if (edge.type === 'connector') {
           strokeColor = '#95a5a6';
-          strokeWidth = '2.5';  // Consistent thickness
-          strokeDasharray = '4,4';  // Slightly larger dash pattern
+          strokeWidth = '1.5';
+          strokeDasharray = '3,3';
           markerEnd = 'url(#dashed-arrow)';
         } else if (edge.type === 'normal') {
           strokeColor = '#2c3e50';
-          strokeWidth = '2.5';  // Consistent thickness
+          strokeWidth = '2';
           markerEnd = 'url(#arrowhead)';
         } else {
           // Alternative paths
           strokeColor = '#7f8c8d';
-          strokeWidth = '2.5';  // Consistent thickness
-          strokeDasharray = '6,6';  // Larger dash pattern for alternatives
+          strokeWidth = '2';
+          strokeDasharray = '5,5';
           markerEnd = 'url(#dashed-arrow)';
         }
         
@@ -176,48 +162,28 @@ class FlowchartGenerator {
         if (edge.label) {
           const midX = (fromX + toX) / 2;
           const midY = (fromY + toY) / 2;
-          const deltaX = toX - fromX;
           
-          // Position labels based on edge type and node types for better readability
-          let labelY = midY - 8;
-          let labelX = midX;
+          // Position labels based on edge type for better readability
+          let labelY = midY - 5;
           let fontSize = '11';
           let fontWeight = 'normal';
-          let labelWidth = Math.max(30, edge.label.length * 6);  // Dynamic width based on text length
           
-          // Special positioning for decision point labels
-          if (toNode.type === 'decision') {
-            // Position labels closer to decision nodes for clarity
-            labelY = toY - 15;
+          if (edge.type === 'loop' || edge.type === 'feedback') {
+            labelY = midY - 25;
             fontSize = '10';
             fontWeight = 'bold';
-            labelWidth = Math.max(25, edge.label.length * 5);
-          } else if (edge.type === 'loop' || edge.type === 'feedback') {
-            labelY = midY - 30;  // Higher for loop arrows
-            fontSize = '10';
-            fontWeight = 'bold';
-            labelWidth = Math.max(35, edge.label.length * 6);
           } else if (edge.type === 'normal') {
             labelY = midY - 8;
             fontSize = '11';
-            fontWeight = 'normal';
           } else {
             labelY = midY - 5;
             fontSize = '10';
             fontWeight = 'italic';
           }
           
-          // Adjust label position for better arrow clearance
-          if (Math.abs(deltaX) > Math.max(fromWidth, toWidth)) {
-            // For L-shaped paths, position label at the corner
-            labelX = fromX + (deltaX > 0 ? 20 : -20);
-            labelY = midY - 20;
-          }
-          
-          // Add background for better readability with rounded corners
-          const bgPadding = 4;
-          svg += `  <rect x="${labelX - labelWidth/2 - bgPadding}" y="${labelY - 12}" width="${labelWidth + bgPadding*2}" height="16" fill="white" stroke="${strokeColor}" stroke-width="1" rx="4"/>\n`;
-          svg += `  <text x="${labelX}" y="${labelY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="${fontWeight}" fill="${strokeColor}">${this.escapeXml(edge.label)}</text>\n`;
+          // Add background for better readability
+          svg += `  <rect x="${midX - 15}" y="${labelY - 12}" width="30" height="16" fill="white" stroke="none" rx="3"/>\n`;
+          svg += `  <text x="${midX}" y="${labelY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="${fontWeight}" fill="${strokeColor}">${this.escapeXml(edge.label)}</text>\n`;
         }
       }
     }
@@ -627,12 +593,12 @@ class FlowchartGenerator {
 
   // Improve edge routing to minimize crossings and improve clarity
   private calculateEdgePath(fromNode: FlowchartNode, toNode: FlowchartNode, edge: FlowchartEdge): string {
-    const fromWidth = fromNode.width || (fromNode.type === 'math' ? this.mathNodeWidth : this.nodeWidth);
-    const fromHeight = fromNode.height || (fromNode.type === 'math' ? this.mathNodeHeight : this.nodeHeight);
-    const toWidth = toNode.width || (toNode.type === 'math' ? this.mathNodeWidth : this.nodeWidth);
-    const toHeight = toNode.height || (toNode.type === 'math' ? this.mathNodeHeight : this.nodeHeight);
+    const fromWidth = fromNode.width || this.nodeWidth;
+    const fromHeight = fromNode.height || this.nodeHeight;
+    const toWidth = toNode.width || this.nodeWidth;
+    const toHeight = toNode.height || this.nodeHeight;
     
-    // Calculate precise connection points on shape edges
+    // Calculate connection points on shape edges
     const fromX = (fromNode.x || 0) + fromWidth / 2;
     const fromY = (fromNode.y || 0) + fromHeight;
     const toX = (toNode.x || 0) + toWidth / 2;
@@ -645,8 +611,8 @@ class FlowchartGenerator {
     // Handle different edge types with improved routing
     if (edge.type === 'loop' || edge.type === 'feedback') {
       // Create smooth curved path for loops with better control points
-      const controlY = Math.min(fromY, toY) - 120;  // Increased clearance for loops
-      const offsetX = Math.max(100, Math.abs(deltaX) / 2);  // Increased offset
+      const controlY = Math.min(fromY, toY) - 100;  // Increased clearance
+      const offsetX = Math.max(80, Math.abs(deltaX) / 2);  // Increased offset
       const controlX1 = fromX + (deltaX > 0 ? offsetX : -offsetX);
       const controlX2 = toX + (deltaX > 0 ? offsetX : -offsetX);
       return `M ${fromX} ${fromY} Q ${controlX1} ${controlY} ${controlX2} ${controlY} Q ${controlX2} ${controlY} ${toX} ${toY}`;
@@ -659,17 +625,17 @@ class FlowchartGenerator {
     } else if (Math.abs(deltaX) > Math.max(fromWidth, toWidth)) {
       // L-shaped path to avoid crossings with proper spacing
       const midY = fromY + deltaY / 2;
-      const spacing = Math.max(40, Math.min(80, Math.abs(deltaX) / 3));  // Increased spacing
+      const spacing = Math.max(30, Math.min(60, Math.abs(deltaX) / 3));  // Increased spacing
       return `M ${fromX} ${fromY} L ${fromX} ${midY - spacing} L ${toX} ${midY - spacing} L ${toX} ${toY}`;
     } else if (deltaY < 0) {
       // Upward connection - use curved path with more clearance
-      const controlY = Math.min(fromY, toY) - 80;  // Increased clearance
+      const controlY = Math.min(fromY, toY) - 60;  // Increased clearance
       const controlX = (fromX + toX) / 2;
       return `M ${fromX} ${fromY} Q ${controlX} ${controlY} ${toX} ${toY}`;
-    } else if (distance < 120) {
+    } else if (distance < 100) {
       // Very close nodes - use curved path to avoid overlap
       const controlY = (fromY + toY) / 2;
-      const controlX = (fromX + toX) / 2 + (deltaX > 0 ? 40 : -40);
+      const controlX = (fromX + toX) / 2 + (deltaX > 0 ? 30 : -30);
       return `M ${fromX} ${fromY} Q ${controlX} ${controlY} ${toX} ${toY}`;
     } else {
       // Direct diagonal connection for nearby nodes
