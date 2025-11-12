@@ -10,7 +10,7 @@ import { LayoutEngine } from './layout-engine.js';
 import { DrawIOGenerator } from './drawio-generator.js';
 import { CreateFlowchartRequest, FlowchartOptions, FlowchartNode } from './types.js';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
-import { join, dirname } from 'path';
+import { join, dirname, resolve, isAbsolute } from 'path';
 
 class FlowchartMCPServer {
   private server: Server;
@@ -315,7 +315,7 @@ class FlowchartMCPServer {
                 },
                 outputPath: {
                   type: 'string',
-                  description: 'Path where to save the .drawio file (e.g., "./output/flowchart.drawio")',
+                  description: 'Path where to save the .drawio file. Can be absolute (e.g., "C:/Users/username/Documents/flowchart.drawio") or relative to current working directory (e.g., "./output/flowchart.drawio")',
                 },
                 options: {
                   type: 'object',
@@ -561,20 +561,27 @@ class FlowchartMCPServer {
       // Generate the XML
       const xml = this.drawIOGenerator.generateXML(flowchart);
 
+      // Resolve the output path properly
+      // If it's already absolute, use it as-is
+      // If it's relative, resolve it relative to the current working directory
+      const resolvedPath = isAbsolute(args.outputPath) 
+        ? args.outputPath 
+        : resolve(process.cwd(), args.outputPath);
+
       // Ensure the output directory exists
-      const outputDir = dirname(args.outputPath);
+      const outputDir = dirname(resolvedPath);
       if (!existsSync(outputDir)) {
         mkdirSync(outputDir, { recursive: true });
       }
 
       // Write the file
-      writeFileSync(args.outputPath, xml, 'utf8');
+      writeFileSync(resolvedPath, xml, 'utf8');
 
       return {
         content: [
           {
             type: 'text',
-            text: `✅ Successfully generated draw.io file!\n\n📁 File saved to: ${args.outputPath}\n📊 Flowchart: "${args.name}"${args.description ? ` - ${args.description}` : ''}\n\n🎯 You can now:\n- Open the file in draw.io\n- Import it into other diagramming tools\n- Share it with your team\n\n📄 File size: ${Math.round(xml.length / 1024 * 100) / 100} KB`,
+            text: `✅ Successfully generated draw.io file!\n\n📁 File saved to: ${resolvedPath}\n📊 Flowchart: "${args.name}"${args.description ? ` - ${args.description}` : ''}\n\n🎯 You can now:\n- Open the file in draw.io\n- Import it into other diagramming tools\n- Share it with your team\n\n📄 File size: ${Math.round(xml.length / 1024 * 100) / 100} KB`,
           },
         ],
       };

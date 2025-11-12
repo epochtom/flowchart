@@ -29,7 +29,8 @@ const flowchartRequest = {
     { from: "log_error", to: "error" },
     { from: "error", to: "end" }
   ],
-  outputPath: "./output/user-auth-flow.drawio",
+  outputPath: "./output/user-auth-flow.drawio", // Relative to current working directory
+  // Alternative: outputPath: "C:/Users/username/Documents/flowcharts/user-auth-flow.drawio" // Absolute path
   options: {
     direction: "vertical",
     spacing: {
@@ -49,3 +50,7 @@ console.log("Tool: generate_drawio_file");
 console.log("Arguments:", JSON.stringify(flowchartRequest, null, 2));
 console.log("\nThis will create a file at: ./output/user-auth-flow.drawio");
 console.log("The file can be opened in draw.io or any compatible tool.");
+console.log("\nPath resolution:");
+console.log("- Relative paths (like './output/') are resolved relative to the current working directory");
+console.log("- Absolute paths (like 'C:/Users/username/Documents/') are used as-is");
+console.log("- The program will create directories if they don't exist");
